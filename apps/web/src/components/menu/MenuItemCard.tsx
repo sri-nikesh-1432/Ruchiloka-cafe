@@ -105,9 +105,12 @@ export function MenuItemCard({ item, onInspect }: MenuItemCardProps) {
             ~{item.prepTimeMinutes} min
           </span>
 
-          <button
+          <motion.button
             type="button"
             disabled={!item.isAvailable}
+            whileHover={item.isAvailable ? { scale: 1.03 } : undefined}
+            whileTap={item.isAvailable ? { scale: 0.95 } : undefined}
+            transition={{ duration: 0.18 }}
             onClick={(e) => void handlePrimaryAction(e)}
             className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all ${
               item.isAvailable
@@ -126,7 +129,7 @@ export function MenuItemCard({ item, onInspect }: MenuItemCardProps) {
                 Add to Tray
               </>
             )}
-          </button>
+          </motion.button>
         </div>
       </div>
     </motion.article>

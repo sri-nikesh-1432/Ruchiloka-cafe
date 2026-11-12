@@ -24,6 +24,45 @@ export interface SendEmailResult {
   error?: string;
 }
 
+async function dispatchViaPostmark(params: {
+  serverToken: string;
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+  replyTo?: string;
+  messageStream: string;
+}): Promise<string | null> {
+  const res = await fetch('https://api.postmarkapp.com/email', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Postmark-Server-Token': params.serverToken,
+    },
+    body: JSON.stringify({
+      From: params.from,
+      To: params.to,
+      Subject: params.subject,
+      HtmlBody: params.html,
+      ...(params.replyTo ? { ReplyTo: params.replyTo } : {}),
+      MessageStream: params.messageStream,
+    }),
+  });
+
+  const payload = (await res.json().catch(() => ({}))) as {
+    MessageID?: string;
+    Message?: string;
+    ErrorCode?: number;
+  };
+
+  if (!res.ok || (typeof payload.ErrorCode === 'number' && payload.ErrorCode !== 0)) {
+    throw new Error(payload.Message || `Postmark API failed with HTTP ${res.status}.`);
+  }
+
+  return payload.MessageID ?? null;
+}
+
 export async function sendTransactionalEmail(params: {
   eventType: string;
   to: string;
@@ -33,15 +72,21 @@ export async function sendTransactionalEmail(params: {
   replyTo?: string;
 }): Promise<SendEmailResult> {
   const config = getConfig();
+  const usePostmark = Boolean(
+    config.postmark.enabled && config.postmark.serverToken && config.postmark.fromEmail
+  );
+  const useResend = Boolean(
+    !usePostmark && config.resend.enabled && config.resend.apiKey && config.resend.fromEmail
+  );
 
-  if (!config.resend.enabled || !config.resend.apiKey || !config.resend.fromEmail) {
+  if (!usePostmark && !useResend) {
     await prisma.emailLog.create({
       data: {
         eventType: params.eventType,
         recipientEmail: params.to,
         subject: params.subject,
         status: EmailDeliveryStatus.SKIPPED,
-        errorMessage: 'Resend API key or verified RESEND_FROM_EMAIL is not configured.',
+        errorMessage: 'Neither Postmark nor Resend email credentials are configured.',
         attempts: 0,
         metadataJson: params.metadata ? (params.metadata as object) : undefined,
       },
@@ -49,24 +94,39 @@ export async function sendTransactionalEmail(params: {
     return { recipient: params.to, status: EmailDeliveryStatus.SKIPPED, messageId: null };
   }
 
-  const resend = new Resend(config.resend.apiKey);
+  const resend = useResend ? new Resend(config.resend.apiKey) : null;
   let lastError: string | undefined;
 
   for (let attempt = 1; attempt <= MAX_SEND_ATTEMPTS; attempt++) {
     try {
-      const result = await resend.emails.send({
-        from: config.resend.fromEmail,
-        to: params.to,
-        subject: params.subject,
-        html: params.html,
-        ...(params.replyTo ? { replyTo: params.replyTo } : {}),
-      });
+      let messageId: string | null = null;
 
-      if (result.error) {
-        throw new Error(result.error.message || 'Resend API returned an error.');
+      if (usePostmark && config.postmark.serverToken && config.postmark.fromEmail) {
+        messageId = await dispatchViaPostmark({
+          serverToken: config.postmark.serverToken,
+          from: config.postmark.fromEmail,
+          to: params.to,
+          subject: params.subject,
+          html: params.html,
+          replyTo: params.replyTo,
+          messageStream: config.postmark.messageStream,
+        });
+      } else if (resend && config.resend.fromEmail) {
+        const result = await resend.emails.send({
+          from: config.resend.fromEmail,
+          to: params.to,
+          subject: params.subject,
+          html: params.html,
+          ...(params.replyTo ? { replyTo: params.replyTo } : {}),
+        });
+
+        if (result.error) {
+          throw new Error(result.error.message || 'Resend API returned an error.');
+        }
+
+        messageId = result.data?.id ?? null;
       }
 
-      const messageId = result.data?.id ?? null;
       await prisma.emailLog.create({
         data: {
           eventType: params.eventType,

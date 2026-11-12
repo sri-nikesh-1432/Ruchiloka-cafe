@@ -148,4 +148,53 @@ describe('Transactional email retries, multi-recipient alerts, contact form & he
     expect(degradedRes.status).toBe(503);
     expect(degradedRes.body.data.database).toBe('unreachable');
   });
+
+  it('dispatches via Postmark API with retries when POSTMARK_SERVER_TOKEN is configured', async () => {
+    process.env.POSTMARK_SERVER_TOKEN = 'pm_test_server_token';
+    process.env.POSTMARK_FROM_EMAIL = 'Ruchiloka <hello@example.test>';
+    resetConfigCacheForTests();
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        json: async () => ({ Message: 'Transient Postmark outage', ErrorCode: 503 }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ MessageID: 'pm-msg-987', ErrorCode: 0 }),
+      });
+
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const res = await sendTransactionalEmail({
+        eventType: 'POSTMARK_TEST',
+        to: 'guest@example.test',
+        subject: 'Table Confirmed',
+        html: '<p>Confirmed</p>',
+        replyTo: 'guest@example.test',
+      });
+
+      expect(res.status).toBe(EmailDeliveryStatus.SENT);
+      expect(res.messageId).toBe('pm-msg-987');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fetchMock.mock.calls[0]?.[0]).toBe('https://api.postmarkapp.com/email');
+      expect(prismaMock.client.emailLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: EmailDeliveryStatus.SENT,
+            attempts: 2,
+            providerMessageId: 'pm-msg-987',
+          }),
+        })
+      );
+    } finally {
+      delete process.env.POSTMARK_SERVER_TOKEN;
+      delete process.env.POSTMARK_FROM_EMAIL;
+      resetConfigCacheForTests();
+      vi.unstubAllGlobals();
+    }
+  });
 });

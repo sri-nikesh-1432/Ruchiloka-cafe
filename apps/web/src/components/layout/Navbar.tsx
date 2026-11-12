@@ -8,7 +8,7 @@ import { ChevronDown, Menu, ShoppingBag, User, X, ShieldCheck } from 'lucide-rea
 import { BrandLogo } from '@/components/brand/BrandLogo';
 import { ToranBorderStrip } from '@/components/brand/TraditionalOrnaments';
 import { useApp } from '@/context/AppContext';
-import { EDITORIAL_EASE } from '@/components/motion/MotionPrimitives';
+import { EDITORIAL_EASE, ScrollProgressBar } from '@/components/motion/MotionPrimitives';
 
 const MENU_DROPDOWN = [
   { href: '/menu', label: 'All Menu & Printed Cards' },
@@ -70,17 +70,26 @@ export function Navbar() {
         </div>
 
         <div className="editorial-container flex items-center justify-between gap-4 py-2.5">
-          <BrandLogo variant="light" layout="lockup" size="md" showSubtext />
+          <motion.div
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.45, ease: EDITORIAL_EASE }}
+          >
+            <BrandLogo variant="light" layout="lockup" size="md" showSubtext />
+          </motion.div>
 
           {/* Desktop Navigation */}
           <nav aria-label="Main navigation" className="hidden lg:flex items-center gap-7">
-            {NAV_LINKS.map((link) => {
+            {NAV_LINKS.map((link, idx) => {
               const active = isRouteActive(link.href);
 
               if (link.hasDropdown) {
                 return (
-                  <div
+                  <motion.div
                     key={link.href}
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.05 * idx, ease: EDITORIAL_EASE }}
                     className="relative"
                     onMouseEnter={() => setMenuDropdownOpen(true)}
                     onMouseLeave={() => setMenuDropdownOpen(false)}
@@ -129,27 +138,33 @@ export function Navbar() {
                         </motion.div>
                       )}
                     </AnimatePresence>
-                  </div>
+                  </motion.div>
                 );
               }
 
               return (
-                <Link
+                <motion.div
                   key={link.href}
-                  href={link.href}
-                  className={`relative py-1.5 text-sm font-medium tracking-wide transition-colors ${
-                    active ? 'text-cognac' : 'text-coffee hover:text-cognac'
-                  }`}
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.05 * idx, ease: EDITORIAL_EASE }}
                 >
-                  {link.label}
-                  {active && (
-                    <motion.span
-                      layoutId="nav-active-underline"
-                      transition={{ duration: 0.3, ease: EDITORIAL_EASE }}
-                      className="absolute inset-x-0 -bottom-0.5 h-[2px] rounded-full bg-cognac"
-                    />
-                  )}
-                </Link>
+                  <Link
+                    href={link.href}
+                    className={`relative inline-block py-1.5 text-sm font-medium tracking-wide transition-colors ${
+                      active ? 'text-cognac' : 'text-coffee hover:text-cognac'
+                    }`}
+                  >
+                    {link.label}
+                    {active && (
+                      <motion.span
+                        layoutId="nav-active-underline"
+                        transition={{ duration: 0.3, ease: EDITORIAL_EASE }}
+                        className="absolute inset-x-0 -bottom-0.5 h-[2px] rounded-full bg-cognac"
+                      />
+                    )}
+                  </Link>
+                </motion.div>
               );
             })}
           </nav>
@@ -174,8 +189,9 @@ export function Navbar() {
               <span>{user ? user.name.split(' ')[0] : 'Sign In'}</span>
             </Link>
 
-            <button
+            <motion.button
               type="button"
+              whileTap={{ scale: 0.96 }}
               onClick={openCartDrawer}
               aria-label={`Open tray with ${cart.itemCount} items`}
               className="relative inline-flex items-center gap-2 rounded-full bg-dark-brown px-4 py-2 text-xs font-semibold tracking-wider uppercase text-cream shadow-sm transition-all hover:bg-coffee"
@@ -185,16 +201,16 @@ export function Navbar() {
               <AnimatePresence mode="popLayout">
                 <motion.span
                   key={cart.itemCount}
-                  initial={{ scale: 0.75, opacity: 0.6 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.75, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
+                  initial={{ scale: 0.7, opacity: 0.6 }}
+                  animate={{ scale: [1, 1.2, 1], opacity: 1 }}
+                  exit={{ scale: 0.7, opacity: 0 }}
+                  transition={{ duration: 0.28, ease: EDITORIAL_EASE }}
                   className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-ivory px-1.5 font-mono text-[11px] font-bold text-dark-brown"
                 >
                   {cart.itemCount}
                 </motion.span>
               </AnimatePresence>
-            </button>
+            </motion.button>
 
             <button
               type="button"
@@ -207,6 +223,7 @@ export function Navbar() {
             </button>
           </div>
         </div>
+        <ScrollProgressBar />
       </header>
 
       {/* Mobile Navigation Drawer */}

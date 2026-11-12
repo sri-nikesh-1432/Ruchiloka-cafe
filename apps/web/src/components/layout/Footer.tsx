@@ -7,6 +7,11 @@ import { BUSINESS_INFO } from '@ruchiloka/shared';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 import { ToranBorderStrip } from '@/components/brand/TraditionalOrnaments';
 import { useApp } from '@/context/AppContext';
+import {
+  BorderDrawReveal,
+  StaggerContainer,
+  StaggerItem,
+} from '@/components/motion/MotionPrimitives';
 
 export function Footer() {
   const { publicSettings } = useApp();
@@ -15,14 +20,14 @@ export function Footer() {
 
   return (
     <footer className="relative border-t border-beige-border/40 bg-dark-brown text-cream overflow-hidden">
-      <div className="opacity-25">
+      <BorderDrawReveal className="opacity-25">
         <ToranBorderStrip tone="light" />
-      </div>
+      </BorderDrawReveal>
 
       <div className="editorial-container py-14 lg:py-18">
-        <div className="grid gap-12 lg:grid-cols-12">
+        <StaggerContainer staggerDelay={0.09} className="grid gap-12 lg:grid-cols-12">
           {/* Brand Column */}
-          <div className="lg:col-span-4 space-y-5">
+          <StaggerItem className="lg:col-span-4 space-y-5">
             <BrandLogo variant="dark" layout="badge" size="lg" showSubtext />
             <p className="max-w-sm text-sm leading-relaxed text-beige/80">
               {BUSINESS_INFO.supportingCopy} Good Food. Good Mood. Visit our Kukatpally café
@@ -85,10 +90,10 @@ export function Footer() {
                 </a>
               )}
             </div>
-          </div>
+          </StaggerItem>
 
           {/* Navigation Column */}
-          <div className="lg:col-span-3 space-y-4">
+          <StaggerItem className="lg:col-span-3 space-y-4">
             <h3 className="text-xs font-semibold uppercase tracking-[0.22em] text-cognac-light">
               Explore
             </h3>
@@ -134,10 +139,10 @@ export function Footer() {
                 </Link>
               </li>
             </ul>
-          </div>
+          </StaggerItem>
 
           {/* Operating Hours Column */}
-          <div className="lg:col-span-3 space-y-4">
+          <StaggerItem className="lg:col-span-3 space-y-4">
             <h3 className="text-xs font-semibold uppercase tracking-[0.22em] text-cognac-light">
               Hours (IST)
             </h3>
@@ -155,10 +160,10 @@ export function Footer() {
                 </li>
               ))}
             </ul>
-          </div>
+          </StaggerItem>
 
           {/* Delivery Partners & Legal */}
-          <div className="lg:col-span-2 space-y-4">
+          <StaggerItem className="lg:col-span-2 space-y-4">
             <h3 className="text-xs font-semibold uppercase tracking-[0.22em] text-cognac-light">
               Order Online
             </h3>
@@ -216,8 +221,8 @@ export function Footer() {
                 </Link>
               </div>
             </div>
-          </div>
-        </div>
+          </StaggerItem>
+        </StaggerContainer>
 
         <div className="mt-14 flex flex-col items-start justify-between gap-4 border-t border-white/10 pt-7 text-xs text-beige/65 sm:flex-row sm:items-center">
           <p>© {currentYear} Ruchiloka Café. All rights reserved.</p>

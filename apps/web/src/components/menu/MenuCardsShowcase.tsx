@@ -18,6 +18,11 @@ import {
   LotusMandalaWatermark,
   ToranBorderStrip,
 } from '@/components/brand/TraditionalOrnaments';
+import {
+  BorderDrawReveal,
+  EDITORIAL_EASE,
+  TextReveal,
+} from '@/components/motion/MotionPrimitives';
 
 export interface OfficialMenuCard {
   id: string;
@@ -150,9 +155,9 @@ export function MenuCardsShowcase({
 
       <div className="editorial-container relative z-10">
         {!compactHeader && (
-          <div className="mb-8 overflow-hidden rounded-full border border-beige-border/70 bg-ivory/70">
+          <BorderDrawReveal className="mb-8 overflow-hidden rounded-full border border-beige-border/70 bg-ivory/70">
             <ToranBorderStrip className="opacity-75" />
-          </div>
+          </BorderDrawReveal>
         )}
 
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
@@ -162,7 +167,7 @@ export function MenuCardsShowcase({
               Official Printed Café Menu
             </span>
             <h2 className="editorial-heading text-3xl sm:text-5xl font-semibold leading-tight">
-              Browse Every Ruchiloka Menu Card
+              <TextReveal>Browse Every Ruchiloka Menu Card</TextReveal>
             </h2>
             <p className="text-sm sm:text-base leading-relaxed text-coffee-muted">
               From hand-brewed Tea &amp; Filter Coffee to Pizzas, Pastas, Burgers, Fries,
@@ -228,64 +233,74 @@ export function MenuCardsShowcase({
         </div>
 
         {/* Neatly Cropped Menu Cards Grid */}
-        <div
+        <motion.div
+          layout
           className={`mt-9 grid gap-7 ${
             visibleCards.length === 1
               ? 'max-w-lg mx-auto grid-cols-1'
               : 'sm:grid-cols-2 lg:grid-cols-3'
           }`}
         >
-          {visibleCards.map((card, index) => (
-            <article
-              key={card.id}
-              className="group relative flex flex-col rounded-[26px] border border-beige-dark/80 bg-ivory p-3.5 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-editorial"
-            >
-              {/* Traditional inner hairline accent */}
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-[6px] rounded-[20px] border border-beige-border/50"
-              />
-
-              <button
-                type="button"
-                onClick={() => {
-                  setLightboxIndex(index);
-                  setZoomed(false);
-                }}
-                aria-label={`Zoom in to read ${card.title} menu card`}
-                className="relative z-10 block w-full overflow-hidden rounded-[18px] border border-beige-border/80 bg-[#FEF6EB] text-left focus:outline-none focus:ring-2 focus:ring-cognac"
+          <AnimatePresence mode="popLayout">
+            {visibleCards.map((card, index) => (
+              <motion.article
+                layout
+                key={card.id}
+                initial={{ opacity: 0, y: 20, scale: 0.97 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                viewport={{ once: true, amount: 0.12 }}
+                transition={{ duration: 0.45, delay: Math.min(index * 0.05, 0.25), ease: EDITORIAL_EASE }}
+                whileHover={{ y: -4 }}
+                className="group relative flex flex-col rounded-[26px] border border-beige-dark/80 bg-ivory p-3.5 shadow-card transition-shadow duration-300 hover:shadow-editorial"
               >
-                <div className="relative aspect-[860/1230] w-full overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={card.image}
-                    alt={`${card.title} official Ruchiloka Café menu`}
-                    loading="lazy"
-                    className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-[1.02]"
-                  />
-                </div>
-                <span className="absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-full bg-dark-brown/85 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-cream backdrop-blur-sm transition-colors group-hover:bg-cognac">
-                  <Maximize2 className="h-3 w-3" />
-                  Read Card
-                </span>
-              </button>
+                {/* Traditional inner hairline accent */}
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-[6px] rounded-[20px] border border-beige-border/50"
+                />
 
-              <div className="relative z-10 flex flex-1 flex-col justify-between gap-2 px-2 pt-3.5 pb-1">
-                <div>
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-serif text-xl font-semibold text-dark-brown">
-                      {card.title}
-                    </h3>
-                    <span className="rounded-full bg-beige px-2.5 py-0.5 font-mono text-[10px] font-medium text-coffee">
-                      {card.timing.replace(' IST', '')}
-                    </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLightboxIndex(index);
+                    setZoomed(false);
+                  }}
+                  aria-label={`Zoom in to read ${card.title} menu card`}
+                  className="relative z-10 block w-full overflow-hidden rounded-[18px] border border-beige-border/80 bg-[#FEF6EB] text-left focus:outline-none focus:ring-2 focus:ring-cognac"
+                >
+                  <div className="relative aspect-[860/1230] w-full overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={card.image}
+                      alt={`${card.title} official Ruchiloka Café menu`}
+                      loading="lazy"
+                      className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-[1.03]"
+                    />
                   </div>
-                  <p className="mt-1 text-xs leading-relaxed text-coffee-muted">{card.subtitle}</p>
+                  <span className="absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-full bg-dark-brown/85 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-cream backdrop-blur-sm transition-colors group-hover:bg-cognac">
+                    <Maximize2 className="h-3 w-3" />
+                    Read Card
+                  </span>
+                </button>
+
+                <div className="relative z-10 flex flex-1 flex-col justify-between gap-2 px-2 pt-3.5 pb-1">
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="font-serif text-xl font-semibold text-dark-brown">
+                        {card.title}
+                      </h3>
+                      <span className="rounded-full bg-beige px-2.5 py-0.5 font-mono text-[10px] font-medium text-coffee">
+                        {card.timing.replace(' IST', '')}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed text-coffee-muted">{card.subtitle}</p>
+                  </div>
                 </div>
-              </div>
-            </article>
-          ))}
-        </div>
+              </motion.article>
+            ))}
+          </AnimatePresence>
+        </motion.div>
       </div>
 
       {/* High-Resolution Reader Lightbox */}

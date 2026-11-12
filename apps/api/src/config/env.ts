@@ -23,6 +23,9 @@ const EnvSchema = z.object({
   GOOGLE_REDIRECT_URI: z.string().url().optional(),
   RESEND_API_KEY: z.string().optional(),
   RESEND_FROM_EMAIL: z.string().optional(),
+  POSTMARK_SERVER_TOKEN: z.string().optional(),
+  POSTMARK_FROM_EMAIL: z.string().optional(),
+  POSTMARK_MESSAGE_STREAM: z.string().optional(),
   ADMIN_NOTIFICATION_EMAIL: z.string().optional(),
   ENABLE_SWIGGY_API_HANDOFF: z
     .string()
@@ -74,6 +77,12 @@ export interface AppConfig {
     apiKey?: string;
     fromEmail?: string;
     adminNotificationEmails: string[];
+  };
+  postmark: {
+    enabled: boolean;
+    serverToken?: string;
+    fromEmail?: string;
+    messageStream: string;
   };
   ordering: {
     enableSwiggyApiHandoff: boolean;
@@ -167,6 +176,11 @@ export function getConfig(): AppConfig {
 
   const googleEnabled = Boolean(raw.GOOGLE_CLIENT_ID && raw.GOOGLE_CLIENT_SECRET);
   const resendEnabled = Boolean(raw.RESEND_API_KEY && raw.RESEND_FROM_EMAIL);
+  const postmarkToken = raw.POSTMARK_SERVER_TOKEN?.trim() || undefined;
+  const postmarkEnabled = Boolean(postmarkToken);
+  const postmarkFromEmail =
+    raw.POSTMARK_FROM_EMAIL?.trim() || 'Ruchiloka Café <ruchiloka.in@gmail.com>';
+  const postmarkMessageStream = raw.POSTMARK_MESSAGE_STREAM?.trim() || 'outbound';
   const cloudinaryEnabled = Boolean(
     raw.CLOUDINARY_CLOUD_NAME && raw.CLOUDINARY_API_KEY && raw.CLOUDINARY_API_SECRET
   );
@@ -193,6 +207,12 @@ export function getConfig(): AppConfig {
       apiKey: raw.RESEND_API_KEY,
       fromEmail: raw.RESEND_FROM_EMAIL,
       adminNotificationEmails,
+    },
+    postmark: {
+      enabled: postmarkEnabled,
+      serverToken: postmarkToken,
+      fromEmail: postmarkFromEmail,
+      messageStream: postmarkMessageStream,
     },
     ordering: {
       enableSwiggyApiHandoff: raw.ENABLE_SWIGGY_API_HANDOFF,
