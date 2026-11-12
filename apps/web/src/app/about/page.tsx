@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <PageTransitionWrapper className="pt-28 pb-24">
+    <PageTransitionWrapper className="pt-32 pb-24">
       <section className="editorial-container">
         <div className="grid gap-12 lg:grid-cols-12 items-center border-b border-beige-border pb-16">
           <div className="lg:col-span-6 space-y-6">
@@ -106,6 +106,9 @@ export default function AboutPage() {
             <p className="flex items-start gap-2.5 text-sm text-coffee-muted">
               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-cognac" />
               <span>{BUSINESS_INFO.address.full}</span>
+            </p>
+            <p className="text-xs text-coffee">
+              Phone: <a href={BUSINESS_INFO.phoneHref} className="font-mono hover:text-cognac">{BUSINESS_INFO.phone}</a> · Email: <a href={BUSINESS_INFO.emailHref} className="font-medium hover:text-cognac">{BUSINESS_INFO.email}</a>
             </p>
           </div>
           <div className="lg:col-span-6 grid gap-3 sm:grid-cols-3">

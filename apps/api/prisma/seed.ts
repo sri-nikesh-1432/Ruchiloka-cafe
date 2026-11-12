@@ -52,10 +52,16 @@ async function main() {
   }
 
   // 2. Seed singleton Admin Settings with verified Kukatpally business info
-  const adminEmailsFromEnv = (process.env.ADMIN_NOTIFICATION_EMAIL ?? '')
-    .split(',')
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
+  const adminEmailsFromEnv = Array.from(
+    new Set(
+      [
+        BUSINESS_INFO.email,
+        ...(process.env.ADMIN_NOTIFICATION_EMAIL ?? '').split(','),
+      ]
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean)
+    )
+  );
 
   await prisma.adminSetting.upsert({
     where: { key: 'default' },

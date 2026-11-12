@@ -37,12 +37,12 @@ function wrapBrandedLayout({
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background-color:#FFFDF9;border:1px solid #DECFC0;border-radius:20px;overflow:hidden;">
           <tr>
             <td style="background-color:#24160E;padding:28px 32px;text-align:center;">
-              <img src="${escapeHtml(logoUrl)}" alt="Ruchiloka Café" width="56" height="56" style="display:inline-block;border-radius:999px;background-color:#FFFDF9;padding:4px;object-fit:contain;" />
+              <img src="${escapeHtml(logoUrl)}" alt="Ruchiloka Café" width="60" height="60" style="display:inline-block;border-radius:999px;background-color:#FFF6D5;padding:3px;object-fit:contain;" />
               <div style="margin-top:12px;font-size:24px;font-weight:600;color:#FFFFFF;letter-spacing:0.5px;">
                 Ruchiloka Café
               </div>
               <div style="margin-top:4px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:2.4px;text-transform:uppercase;color:#E9CDBE;">
-                Kukatpally · Hyderabad
+                ${escapeHtml(BUSINESS_INFO.brandTagline)} · Kukatpally, Hyderabad
               </div>
             </td>
           </tr>
@@ -72,7 +72,7 @@ function wrapBrandedLayout({
             <td style="background-color:#EFE7DA;padding:22px 32px;border-top:1px solid #DECFC0;font-family:Arial,sans-serif;font-size:12px;line-height:1.6;color:#755746;">
               <strong style="color:#24160E;">${escapeHtml(BUSINESS_INFO.name)}</strong><br/>
               ${escapeHtml(BUSINESS_INFO.address.full)}<br/>
-              Phone: ${escapeHtml(BUSINESS_INFO.phone)} · Timings in IST (Asia/Kolkata)
+              Phone: ${escapeHtml(BUSINESS_INFO.phone)} · Email: <a href="${escapeHtml(BUSINESS_INFO.emailHref)}" style="color:#B46233;text-decoration:none;">${escapeHtml(BUSINESS_INFO.email)}</a> · Timings in IST (Asia/Kolkata)
             </td>
           </tr>
         </table>

@@ -2,9 +2,10 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, Clock, ExternalLink, MapPin, Phone } from 'lucide-react';
+import { ArrowUpRight, Clock, ExternalLink, Mail, MapPin, Phone } from 'lucide-react';
 import { BUSINESS_INFO } from '@ruchiloka/shared';
 import { BrandLogo } from '@/components/brand/BrandLogo';
+import { ToranBorderStrip } from '@/components/brand/TraditionalOrnaments';
 import { useApp } from '@/context/AppContext';
 
 export function Footer() {
@@ -13,28 +14,41 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-beige-border/40 bg-dark-brown text-cream">
-      <div className="editorial-container py-16 lg:py-20">
+    <footer className="relative border-t border-beige-border/40 bg-dark-brown text-cream overflow-hidden">
+      <div className="opacity-25">
+        <ToranBorderStrip tone="light" />
+      </div>
+
+      <div className="editorial-container py-14 lg:py-18">
         <div className="grid gap-12 lg:grid-cols-12">
           {/* Brand Column */}
-          <div className="lg:col-span-4 space-y-6">
-            <BrandLogo variant="dark" size="lg" showSubtext />
+          <div className="lg:col-span-4 space-y-5">
+            <BrandLogo variant="dark" layout="badge" size="lg" showSubtext />
             <p className="max-w-sm text-sm leading-relaxed text-beige/80">
-              {BUSINESS_INFO.supportingCopy} Rooted in Hyderabad&apos;s warmth—morning tiffins,
-              freshly brewed filter coffee, aromatic chai, and comforting continental plates.
+              {BUSINESS_INFO.supportingCopy} Good Food. Good Mood. Visit our Kukatpally café
+              for morning tiffins, freshly brewed tea &amp; coffee, burgers, pizzas, and more.
             </p>
             <div className="space-y-2.5 text-sm text-beige/85">
               <div className="flex items-start gap-2.5">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-cognac" />
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-cognac-light" />
                 <span>{publicSettings.cafeAddress}</span>
               </div>
               <div className="flex items-center gap-2.5">
-                <Phone className="h-4 w-4 shrink-0 text-cognac" />
+                <Phone className="h-4 w-4 shrink-0 text-cognac-light" />
                 <a
                   href={`tel:${publicSettings.cafePhone.replace(/\s+/g, '')}`}
                   className="hover:text-white transition-colors"
                 >
                   {publicSettings.cafePhone}
+                </a>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Mail className="h-4 w-4 shrink-0 text-cognac-light" />
+                <a
+                  href={BUSINESS_INFO.emailHref}
+                  className="hover:text-white transition-colors"
+                >
+                  {BUSINESS_INFO.email}
                 </a>
               </div>
             </div>
@@ -86,7 +100,7 @@ export function Footer() {
               </li>
               <li>
                 <Link href="/menu" className="hover:text-white transition-colors">
-                  Full Café Menu
+                  Full Café Menu &amp; Cards
                 </Link>
               </li>
               <li>
@@ -111,7 +125,7 @@ export function Footer() {
               </li>
               <li>
                 <Link href="/about" className="hover:text-white transition-colors">
-                  Our Story
+                  About Us
                 </Link>
               </li>
               <li>
@@ -129,9 +143,12 @@ export function Footer() {
             </h3>
             <ul className="space-y-4 text-sm">
               {publicSettings.operatingHours.map((slot) => (
-                <li key={slot.key} className="border-b border-white/10 pb-3 last:border-none last:pb-0">
+                <li
+                  key={slot.key}
+                  className="border-b border-white/10 pb-3 last:border-none last:pb-0"
+                >
                   <div className="flex items-center gap-2 font-medium text-white">
-                    <Clock className="h-3.5 w-3.5 text-cognac" />
+                    <Clock className="h-3.5 w-3.5 text-cognac-light" />
                     <span>{slot.label}</span>
                   </div>
                   <p className="mt-1 font-mono text-xs text-beige/80">{slot.displayHours} IST</p>
@@ -204,7 +221,9 @@ export function Footer() {
 
         <div className="mt-14 flex flex-col items-start justify-between gap-4 border-t border-white/10 pt-7 text-xs text-beige/65 sm:flex-row sm:items-center">
           <p>© {currentYear} Ruchiloka Café. All rights reserved.</p>
-          <p>Vivekananda Nagar, Kukatpally, Hyderabad · Timezone: Asia/Kolkata (IST)</p>
+          <p className="font-serif italic text-sm text-beige/85">
+            Visit. Dine. Repeat. · {BUSINESS_INFO.email}
+          </p>
         </div>
       </div>
     </footer>

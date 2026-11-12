@@ -52,7 +52,7 @@ export default function ContactPage() {
   };
 
   return (
-    <PageTransitionWrapper className="pt-28 pb-24">
+    <PageTransitionWrapper className="pt-32 pb-24">
       <div className="editorial-container">
         <div className="border-b border-beige-border pb-8 max-w-3xl">
           <span className="editorial-kicker">Get in Touch</span>
@@ -237,6 +237,19 @@ export default function ContactPage() {
                     className="mt-1 inline-block font-mono text-sm text-coffee hover:text-cognac"
                   >
                     {publicSettings.cafePhone}
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Mail className="mt-1 h-5 w-5 shrink-0 text-cognac" />
+                <div>
+                  <h2 className="font-serif text-xl font-semibold text-dark-brown">Official Email</h2>
+                  <a
+                    href={BUSINESS_INFO.emailHref}
+                    className="mt-1 inline-block font-sans text-sm font-medium text-coffee hover:text-cognac"
+                  >
+                    {BUSINESS_INFO.email}
                   </a>
                 </div>
               </div>

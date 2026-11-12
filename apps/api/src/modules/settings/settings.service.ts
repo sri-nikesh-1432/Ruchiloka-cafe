@@ -20,13 +20,16 @@ export async function getOrCreateSettingsRecord() {
   if (existing) return existing;
 
   const config = getConfig();
+  const defaultNotificationEmails = Array.from(
+    new Set([BUSINESS_INFO.email, ...config.resend.adminNotificationEmails].map((e) => e.trim().toLowerCase()).filter(Boolean))
+  );
   return prisma.adminSetting.create({
     data: {
       key: 'default',
       cafeName: BUSINESS_INFO.name,
       cafePhone: BUSINESS_INFO.phone,
       cafeAddress: BUSINESS_INFO.address.full,
-      notificationEmails: config.resend.adminNotificationEmails,
+      notificationEmails: defaultNotificationEmails,
       operatingHoursJson: DEFAULT_OPERATING_WINDOWS as unknown as object,
       reservationSlotMinutes: 30,
       maxGuestsPerSlot: 24,

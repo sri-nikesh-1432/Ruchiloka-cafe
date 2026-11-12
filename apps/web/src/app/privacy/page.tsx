@@ -53,7 +53,11 @@ export default function PrivacyPage() {
         <section className="space-y-3">
           <h2 className="font-serif text-2xl font-semibold text-dark-brown">4. Contact</h2>
           <p className="text-sm">
-            For data access or deletion requests, call {BUSINESS_INFO.phone} or write via our{' '}
+            For data access or deletion requests, email{' '}
+            <a href={BUSINESS_INFO.emailHref} className="text-cognac underline">
+              {BUSINESS_INFO.email}
+            </a>
+            , call {BUSINESS_INFO.phone}, or write via our{' '}
             <a href="/contact" className="text-cognac underline">
               Contact page
             </a>

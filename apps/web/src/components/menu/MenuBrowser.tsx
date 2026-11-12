@@ -19,6 +19,7 @@ import {
 } from '@/components/motion/MotionPrimitives';
 import { MenuItemCard } from './MenuItemCard';
 import { MenuItemModal } from './MenuItemModal';
+import { MenuCardsShowcase } from './MenuCardsShowcase';
 
 interface MenuBrowserProps {
   activeCategory?: MenuCategorySlug | 'all';
@@ -94,7 +95,7 @@ export function MenuBrowser({ activeCategory = 'all' }: MenuBrowserProps) {
   }, [items, searchQuery, vegOnly, availableOnly]);
 
   return (
-    <PageTransitionWrapper className="pt-28 pb-24">
+    <PageTransitionWrapper className="pt-32 pb-24">
       {/* Editorial Header */}
       <section className="border-b border-beige-border bg-beige-soft py-12 sm:py-16">
         <div className="editorial-container">
@@ -316,6 +317,14 @@ export function MenuBrowser({ activeCategory = 'all' }: MenuBrowserProps) {
             </StaggerContainer>
           )}
         </div>
+      </section>
+
+      <section className="pt-4">
+        <MenuCardsShowcase
+          id="official-menu-cards"
+          defaultCategory={activeCategory === 'tiffins' ? 'all' : activeCategory}
+          compactHeader
+        />
       </section>
 
       <MenuItemModal item={inspectItem} onClose={() => setInspectItem(null)} />

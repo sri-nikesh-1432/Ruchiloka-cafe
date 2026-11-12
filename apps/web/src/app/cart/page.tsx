@@ -28,7 +28,7 @@ export default function CartPage() {
   };
 
   return (
-    <PageTransitionWrapper className="pt-28 pb-24">
+    <PageTransitionWrapper className="pt-32 pb-24">
       <div className="editorial-container">
         <div className="border-b border-beige-border pb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>

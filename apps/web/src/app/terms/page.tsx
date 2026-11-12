@@ -48,7 +48,12 @@ export default function TermsPage() {
           <p className="text-sm">
             Selecting Swiggy or Zomato hands off your prepared summary or verified listing session
             to the chosen third-party platform. Delivery times, taxes, packaging charges, and
-            payment settlement are governed by the respective marketplace&apos;s terms.
+            payment settlement are governed by the respective marketplace&apos;s terms. For questions,
+            contact us at{' '}
+            <a href={BUSINESS_INFO.emailHref} className="text-cognac underline">
+              {BUSINESS_INFO.email}
+            </a>
+            .
           </p>
         </section>
       </article>

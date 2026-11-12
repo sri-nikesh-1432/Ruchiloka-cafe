@@ -63,9 +63,14 @@ function RegisterFormContent() {
   return (
     <PageTransitionWrapper className="pt-32 pb-24">
       <div className="editorial-container max-w-md">
-        <div className="rounded-[2rem] border border-beige-border bg-ivory p-8 sm:p-10 shadow-editorial space-y-6">
+        <div className="relative overflow-hidden rounded-[2rem] border border-beige-dark/80 bg-ivory p-8 sm:p-10 shadow-editorial">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-[6px] rounded-[26px] border border-beige-border/55"
+          />
+          <div className="relative z-10 space-y-6">
           <div className="flex flex-col items-center text-center space-y-3">
-            <BrandLogo variant="light" size="lg" href="/" />
+            <BrandLogo variant="light" layout="badge" size="lg" href="/" showSubtext />
             <div>
               <h1 className="font-serif text-3xl font-semibold text-dark-brown">
                 Join Ruchiloka Café
@@ -198,6 +203,7 @@ function RegisterFormContent() {
               Sign in
             </Link>
           </p>
+          </div>
         </div>
       </div>
     </PageTransitionWrapper>

@@ -9,13 +9,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        cream: '#FAF6F0',
-        ivory: '#FFFDF9',
+        cream: '#FBF5E6',
+        ivory: '#FEFBF3',
         beige: {
-          DEFAULT: '#EFE7DA',
-          soft: '#F5EFE5',
-          border: '#DECFC0',
-          dark: '#D4C1AC',
+          DEFAULT: '#F1E6D2',
+          soft: '#F7F0DF',
+          border: '#DECDB6',
+          dark: '#CBB497',
         },
         cognac: {
           DEFAULT: '#B46233',

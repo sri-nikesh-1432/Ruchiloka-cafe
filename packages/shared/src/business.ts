@@ -27,6 +27,9 @@ export const BUSINESS_INFO = {
   },
   phone: '+91 91216 78449',
   phoneHref: 'tel:+919121678449',
+  email: 'ruchiloka.in@gmail.com',
+  emailHref: 'mailto:ruchiloka.in@gmail.com',
+  brandTagline: 'Every Flavour Has a Story',
   timezone: 'Asia/Kolkata',
   timezoneLabel: 'IST',
   coordinates: {

@@ -22,12 +22,15 @@ import { OrderingModal } from '@/components/ordering/OrderingModal';
 import { ToastViewport } from '@/components/layout/ToastViewport';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || 'https://ruchiloka.netlify.app'
+  ),
   title: {
-    default: 'Ruchiloka Café | Kukatpally, Hyderabad',
+    default: 'Ruchiloka Café | Every Flavour Has a Story — Kukatpally, Hyderabad',
     template: '%s | Ruchiloka Café',
   },
   description:
-    'Every Cup. Every Bite. A Little More Special. Discover freshly prepared morning tiffins, brewed coffee, tea, and continental delights at Ruchiloka Café, Kukatpally, Hyderabad.',
+    'Every Cup. Every Bite. A Little More Special. Discover freshly prepared morning tiffins, brewed coffee, tea, burgers, pizzas, and continental delights at Ruchiloka Café, Kukatpally, Hyderabad.',
   keywords: [
     'Ruchiloka Café',
     'Kukatpally café',

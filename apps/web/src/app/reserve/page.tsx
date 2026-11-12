@@ -127,7 +127,7 @@ export default function ReservePage() {
   };
 
   return (
-    <PageTransitionWrapper className="pt-28 pb-24">
+    <PageTransitionWrapper className="pt-32 pb-24">
       <div className="editorial-container">
         <div className="border-b border-beige-border pb-8 max-w-3xl">
           <span className="editorial-kicker">Table Bookings · Kukatpally</span>
