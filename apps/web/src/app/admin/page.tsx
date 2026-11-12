@@ -6,12 +6,16 @@ import {
   CheckCircle2,
   ClipboardList,
   Edit3,
+  ExternalLink,
+  ImageIcon,
   Loader2,
+  MessageSquare,
   Plus,
   Search,
   Settings,
   ShieldAlert,
   ShieldCheck,
+  Star,
   Trash2,
   Upload,
   Users,
@@ -21,17 +25,31 @@ import {
 } from 'lucide-react';
 import {
   formatIstDateDisplay,
+  GALLERY_CATEGORY_LABELS,
   type AdminSettingsDto,
+  type GalleryCategorySlug,
+  type GalleryPhotoDto,
+  type GallerySourcePlatform,
   type MenuCategoryDto,
   type MenuItemDto,
   type ReservationDto,
   type ReservationStatus,
+  type ReviewModerationStatus,
+  type WebsiteReviewDto,
 } from '@ruchiloka/shared';
 import { useApp } from '@/context/AppContext';
 import { api } from '@/lib/api/endpoints';
 import { PageTransitionWrapper } from '@/components/motion/MotionPrimitives';
 
-type AdminTab = 'overview' | 'menu' | 'reservations' | 'customers' | 'settings' | 'audit';
+type AdminTab =
+  | 'overview'
+  | 'menu'
+  | 'reservations'
+  | 'reviews'
+  | 'gallery'
+  | 'customers'
+  | 'settings'
+  | 'audit';
 
 interface DashboardData {
   metrics: {
@@ -43,6 +61,9 @@ interface DashboardData {
     availableMenuItems: number;
     unavailableMenuItems: number;
     recentEnquiriesCount: number;
+    pendingReviewsCount?: number;
+    approvedReviewsCount?: number;
+    publishedGalleryCount?: number;
   };
   recentReservations: ReservationDto[];
   recentEnquiries: Array<{
@@ -123,6 +144,33 @@ export default function AdminDashboardPage() {
   const [notifEmailsInput, setNotifEmailsInput] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
 
+  // Reviews moderation state
+  const [reviewsList, setReviewsList] = useState<WebsiteReviewDto[]>([]);
+  const [reviewCounts, setReviewCounts] = useState({
+    pendingCount: 0,
+    approvedCount: 0,
+    rejectedCount: 0,
+    totalCount: 0,
+  });
+  const [reviewStatusFilter, setReviewStatusFilter] = useState<'ALL' | ReviewModerationStatus>('ALL');
+  const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
+
+  // Gallery manager state
+  const [galleryList, setGalleryList] = useState<GalleryPhotoDto[]>([]);
+  const [galleryTitle, setGalleryTitle] = useState('');
+  const [galleryCategory, setGalleryCategory] = useState<GalleryCategorySlug>('cafe-ambience');
+  const [galleryImageUrl, setGalleryImageUrl] = useState('');
+  const [galleryCaption, setGalleryCaption] = useState('');
+  const [galleryAlt, setGalleryAlt] = useState('');
+  const [galleryPlatform, setGalleryPlatform] = useState<GallerySourcePlatform>('OWNER_UPLOAD');
+  const [gallerySourceUrl, setGallerySourceUrl] = useState('');
+  const [galleryAttribution, setGalleryAttribution] = useState('Ruchiloka Café');
+  const [galleryCustomerPermitted, setGalleryCustomerPermitted] = useState(true);
+  const [galleryPermissionNote, setGalleryPermissionNote] = useState('');
+  const [galleryFeaturedOnHome, setGalleryFeaturedOnHome] = useState(false);
+  const [uploadingGalleryImg, setUploadingGalleryImg] = useState(false);
+  const [savingGalleryPhoto, setSavingGalleryPhoto] = useState(false);
+
   const loadTabData = useCallback(async (tab: AdminTab) => {
     setLoadingTab(true);
     try {
@@ -143,6 +191,15 @@ export default function AdminDashboardPage() {
           search: resSearch || undefined,
         });
         setReservations(list);
+      } else if (tab === 'reviews') {
+        const data = await api.admin.listReviews(
+          reviewStatusFilter === 'ALL' ? undefined : reviewStatusFilter
+        );
+        setReviewsList(data.reviews);
+        setReviewCounts(data.counts);
+      } else if (tab === 'gallery') {
+        const photos = await api.admin.listGallery();
+        setGalleryList(photos);
       } else if (tab === 'customers') {
         const list = await api.admin.listCustomers(customerSearch || undefined);
         setCustomers(list);
@@ -163,7 +220,7 @@ export default function AdminDashboardPage() {
     } finally {
       setLoadingTab(false);
     }
-  }, [resDateFilter, resStatusFilter, resSearch, customerSearch, pushToast]);
+  }, [resDateFilter, resStatusFilter, resSearch, reviewStatusFilter, customerSearch, pushToast]);
 
   useEffect(() => {
     if (user?.role === 'ADMIN') {
@@ -379,6 +436,136 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleModerateReview = async (id: string, status: ReviewModerationStatus) => {
+    try {
+      const updated = await api.admin.moderateReview(id, status, reviewNotes[id] ?? '');
+      setReviewsList((prev) => prev.map((r) => (r.id === id ? updated : r)));
+      pushToast({
+        title: `Review ${status.toLowerCase()}`,
+        description: `${updated.customerName} (${updated.rating}★)`,
+        tone: 'accent',
+      });
+      await loadTabData('reviews');
+    } catch (err) {
+      pushToast({
+        title: 'Moderation failed',
+        description: err instanceof Error ? err.message : 'Unable to update review.',
+        tone: 'error',
+      });
+    }
+  };
+
+  const handleDeleteReview = async (id: string) => {
+    try {
+      await api.admin.deleteReview(id);
+      setReviewsList((prev) => prev.filter((r) => r.id !== id));
+      pushToast({ title: 'Review deleted', tone: 'default' });
+      await loadTabData('reviews');
+    } catch (err) {
+      pushToast({
+        title: 'Delete failed',
+        description: err instanceof Error ? err.message : 'Unable to delete review.',
+        tone: 'error',
+      });
+    }
+  };
+
+  const handleGalleryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingGalleryImg(true);
+    try {
+      const res = await api.admin.uploadGalleryImage(file);
+      setGalleryImageUrl(res.imageUrl);
+      pushToast({ title: 'Gallery image uploaded', tone: 'accent' });
+    } catch (err) {
+      pushToast({
+        title: 'Upload failed',
+        description: err instanceof Error ? err.message : 'Invalid image file.',
+        tone: 'error',
+      });
+    } finally {
+      setUploadingGalleryImg(false);
+    }
+  };
+
+  const handleCreateGalleryPhoto = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!galleryTitle.trim() || !galleryImageUrl.trim()) return;
+    setSavingGalleryPhoto(true);
+    try {
+      await api.admin.createGalleryPhoto({
+        title: galleryTitle.trim(),
+        categorySlug: galleryCategory,
+        imageUrl: galleryImageUrl.trim(),
+        width: 1200,
+        height: 900,
+        caption: galleryCaption.trim() || galleryTitle.trim(),
+        altText: galleryAlt.trim() || galleryTitle.trim(),
+        sourcePlatform: galleryPlatform,
+        sourceUrl:
+          gallerySourceUrl.trim() || 'https://www.instagram.com/ruchilokacafe.in/',
+        attribution: galleryAttribution.trim() || 'Ruchiloka Café',
+        isCustomerOrCreator: galleryCustomerPermitted,
+        permissionNote: galleryPermissionNote.trim() || null,
+        isFeaturedOnHome: galleryFeaturedOnHome,
+        showInInstagramPreview: galleryPlatform === 'INSTAGRAM',
+        isPublished: true,
+        displayOrder: galleryList.length + 1,
+      });
+      pushToast({ title: 'Gallery photograph added', tone: 'accent' });
+      setGalleryTitle('');
+      setGalleryImageUrl('');
+      setGalleryCaption('');
+      setGalleryAlt('');
+      setGallerySourceUrl('');
+      setGalleryPermissionNote('');
+      setGalleryFeaturedOnHome(false);
+      await loadTabData('gallery');
+    } catch (err) {
+      pushToast({
+        title: 'Could not add photograph',
+        description: err instanceof Error ? err.message : 'Check required fields.',
+        tone: 'error',
+      });
+    } finally {
+      setSavingGalleryPhoto(false);
+    }
+  };
+
+  const handleToggleGalleryFlag = async (
+    photo: GalleryPhotoDto,
+    field: 'isPublished' | 'isFeaturedOnHome'
+  ) => {
+    try {
+      const updated = await api.admin.updateGalleryPhoto(photo.id, {
+        [field]: !photo[field],
+      });
+      setGalleryList((prev) => prev.map((p) => (p.id === photo.id ? updated : p)));
+      pushToast({ title: 'Gallery item updated', tone: 'accent' });
+    } catch (err) {
+      pushToast({
+        title: 'Update failed',
+        description: err instanceof Error ? err.message : 'Please try again.',
+        tone: 'error',
+      });
+    }
+  };
+
+  const handleDeleteGalleryPhoto = async (id: string) => {
+    try {
+      await api.admin.deleteGalleryPhoto(id);
+      setGalleryList((prev) => prev.filter((p) => p.id !== id));
+      pushToast({ title: 'Gallery photograph removed', tone: 'default' });
+    } catch (err) {
+      pushToast({
+        title: 'Delete failed',
+        description: err instanceof Error ? err.message : 'Unable to delete photo.',
+        tone: 'error',
+      });
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="pt-32 pb-24 editorial-container">
@@ -415,6 +602,8 @@ export default function AdminDashboardPage() {
     { id: 'overview', label: 'Overview', icon: ShieldCheck },
     { id: 'menu', label: 'Menu & Add-ons', icon: Utensils },
     { id: 'reservations', label: 'Reservations', icon: ClipboardList },
+    { id: 'reviews', label: 'Reviews', icon: MessageSquare },
+    { id: 'gallery', label: 'Gallery', icon: ImageIcon },
     { id: 'customers', label: 'Customers', icon: Users },
     { id: 'settings', label: 'Settings & Integrations', icon: Settings },
     { id: 'audit', label: 'Audit Logs', icon: ShieldAlert },
@@ -477,6 +666,14 @@ export default function AdminDashboardPage() {
                   value: `${dashboard.metrics.availableMenuItems} / ${dashboard.metrics.unavailableMenuItems}`,
                 },
                 { label: 'Registered Guests', value: dashboard.metrics.totalUsers },
+                {
+                  label: 'Pending / Approved Reviews',
+                  value: `${dashboard.metrics.pendingReviewsCount ?? 0} / ${dashboard.metrics.approvedReviewsCount ?? 0}`,
+                },
+                {
+                  label: 'Published Gallery Photos',
+                  value: dashboard.metrics.publishedGalleryCount ?? 0,
+                },
               ].map((stat) => (
                 <div
                   key={stat.label}
@@ -1022,6 +1219,397 @@ export default function AdminDashboardPage() {
               {savingSettings ? 'Saving Settings...' : 'Save Settings'}
             </button>
           </form>
+        )}
+
+        {/* REVIEWS MODERATION */}
+        {activeTab === 'reviews' && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-beige-border bg-ivory p-5">
+              <div className="flex flex-wrap items-center gap-3 text-xs">
+                <span className="rounded-full bg-amber-100 px-3 py-1 font-semibold text-amber-800">
+                  Pending: {reviewCounts.pendingCount}
+                </span>
+                <span className="rounded-full bg-emerald-100 px-3 py-1 font-semibold text-emerald-800">
+                  Approved: {reviewCounts.approvedCount}
+                </span>
+                <span className="rounded-full bg-red-100 px-3 py-1 font-semibold text-red-700">
+                  Rejected: {reviewCounts.rejectedCount}
+                </span>
+                <span className="text-coffee-muted">Total: {reviewCounts.totalCount}</span>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map((statusOpt) => (
+                  <button
+                    key={statusOpt}
+                    type="button"
+                    onClick={() => setReviewStatusFilter(statusOpt)}
+                    className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                      reviewStatusFilter === statusOpt
+                        ? 'bg-dark-brown text-cream'
+                        : 'border border-beige-border bg-cream text-coffee hover:border-cognac'
+                    }`}
+                  >
+                    {statusOpt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {reviewsList.length === 0 ? (
+              <div className="rounded-3xl border border-beige-border bg-ivory p-10 text-center text-sm text-coffee-muted">
+                No guest reviews matching this moderation filter yet.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {reviewsList.map((review) => (
+                  <div
+                    key={review.id}
+                    className="rounded-3xl border border-beige-border bg-ivory p-6 shadow-sm space-y-4"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-serif text-xl font-semibold text-dark-brown">
+                            {review.customerName}
+                          </h3>
+                          <span className="inline-flex items-center gap-0.5 text-cognac">
+                            {Array.from({ length: review.rating }).map((_, idx) => (
+                              <Star key={idx} className="h-3.5 w-3.5 fill-cognac text-cognac" />
+                            ))}
+                          </span>
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase ${
+                              review.status === 'APPROVED'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : review.status === 'REJECTED'
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}
+                          >
+                            {review.status}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 font-mono text-[11px] text-coffee-muted">
+                          Submitted {new Date(review.createdAt).toLocaleString('en-IN', {
+                            timeZone: 'Asia/Kolkata',
+                          })}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {review.status !== 'APPROVED' && (
+                          <button
+                            type="button"
+                            onClick={() => void handleModerateReview(review.id, 'APPROVED')}
+                            className="inline-flex items-center gap-1 rounded-full bg-emerald-700 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+                          </button>
+                        )}
+                        {review.status !== 'REJECTED' && (
+                          <button
+                            type="button"
+                            onClick={() => void handleModerateReview(review.id, 'REJECTED')}
+                            className="inline-flex items-center gap-1 rounded-full border border-red-300 bg-red-50 px-3.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
+                          >
+                            <XCircle className="h-3.5 w-3.5" /> Reject
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteReview(review.id)}
+                          aria-label={`Delete review by ${review.customerName}`}
+                          className="rounded-full border border-beige-border p-1.5 text-coffee-muted hover:border-red-300 hover:text-red-700"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {review.title && (
+                      <p className="font-semibold text-dark-brown">{review.title}</p>
+                    )}
+                    <p className="text-sm leading-relaxed text-dark-brown/90">{review.message}</p>
+
+                    {review.photoUrl && (
+                      <div className="w-40 overflow-hidden rounded-xl border border-beige-border">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={review.photoUrl}
+                          alt={`Guest upload by ${review.customerName}`}
+                          className="h-28 w-full object-cover"
+                        />
+                      </div>
+                    )}
+
+                    <div className="pt-1">
+                      <label className="block text-[11px] font-semibold uppercase tracking-wider text-coffee-muted">
+                        Admin Moderation Note / Reply (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={reviewNotes[review.id] ?? review.adminNote ?? ''}
+                        onChange={(e) =>
+                          setReviewNotes((prev) => ({ ...prev, [review.id]: e.target.value }))
+                        }
+                        placeholder="Optional internal note or published owner reply..."
+                        className="mt-1 w-full rounded-xl border border-beige-border bg-cream px-3 py-2 text-xs"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* GALLERY MANAGER */}
+        {activeTab === 'gallery' && (
+          <div className="space-y-8">
+            <form
+              onSubmit={handleCreateGalleryPhoto}
+              className="rounded-3xl border border-beige-border bg-ivory p-6 sm:p-8 space-y-4"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-serif text-2xl font-semibold text-dark-brown">
+                  Add Authentic Ruchiloka Photograph
+                </h2>
+                <span className="text-xs text-coffee-muted">
+                  Only verified Google Maps, Instagram, or owner-approved café images
+                </span>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-coffee-muted">
+                    Title
+                  </label>
+                  <input
+                    required
+                    value={galleryTitle}
+                    onChange={(e) => setGalleryTitle(e.target.value)}
+                    placeholder="e.g., Sunset Filter Coffee"
+                    className="mt-1 w-full rounded-xl border border-beige-border bg-cream px-3.5 py-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-coffee-muted">
+                    Category
+                  </label>
+                  <select
+                    value={galleryCategory}
+                    onChange={(e) => setGalleryCategory(e.target.value as GalleryCategorySlug)}
+                    className="mt-1 w-full rounded-xl border border-beige-border bg-cream px-3.5 py-2.5 text-sm"
+                  >
+                    {(Object.keys(GALLERY_CATEGORY_LABELS) as GalleryCategorySlug[]).map((slug) => (
+                      <option key={slug} value={slug}>
+                        {GALLERY_CATEGORY_LABELS[slug]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-coffee-muted">
+                    Source Platform
+                  </label>
+                  <select
+                    value={galleryPlatform}
+                    onChange={(e) => setGalleryPlatform(e.target.value as GallerySourcePlatform)}
+                    className="mt-1 w-full rounded-xl border border-beige-border bg-cream px-3.5 py-2.5 text-sm"
+                  >
+                    <option value="OWNER_UPLOAD">Owner Upload</option>
+                    <option value="INSTAGRAM">Instagram (@ruchilokacafe.in)</option>
+                    <option value="GOOGLE_MAPS">Google Maps Listing</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-coffee-muted">
+                    Image Path or Upload File
+                  </label>
+                  <div className="mt-1 flex gap-2">
+                    <input
+                      required
+                      value={galleryImageUrl}
+                      onChange={(e) => setGalleryImageUrl(e.target.value)}
+                      placeholder="/images/ambience/... or upload ->"
+                      className="flex-1 rounded-xl border border-beige-border bg-cream px-3.5 py-2.5 text-sm"
+                    />
+                    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-beige-dark bg-cream px-3.5 py-2 text-xs font-semibold hover:border-cognac">
+                      <Upload className="h-3.5 w-3.5" />
+                      {uploadingGalleryImg ? 'Uploading...' : 'Upload'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={(e) => void handleGalleryImageUpload(e)}
+                      />
+                    </label>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-coffee-muted">
+                    Source Post / Listing URL
+                  </label>
+                  <input
+                    value={gallerySourceUrl}
+                    onChange={(e) => setGallerySourceUrl(e.target.value)}
+                    placeholder="https://www.instagram.com/ruchilokacafe.in/..."
+                    className="mt-1 w-full rounded-xl border border-beige-border bg-cream px-3.5 py-2.5 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-coffee-muted">
+                    Caption
+                  </label>
+                  <input
+                    required
+                    value={galleryCaption}
+                    onChange={(e) => setGalleryCaption(e.target.value)}
+                    placeholder="Warm courtyard evenings..."
+                    className="mt-1 w-full rounded-xl border border-beige-border bg-cream px-3.5 py-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-coffee-muted">
+                    Accessible Alt Text
+                  </label>
+                  <input
+                    required
+                    value={galleryAlt}
+                    onChange={(e) => setGalleryAlt(e.target.value)}
+                    placeholder="Describe photo for screen readers"
+                    className="mt-1 w-full rounded-xl border border-beige-border bg-cream px-3.5 py-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-coffee-muted">
+                    Credit / Attribution
+                  </label>
+                  <input
+                    required
+                    value={galleryAttribution}
+                    onChange={(e) => setGalleryAttribution(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-beige-border bg-cream px-3.5 py-2.5 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+                <div className="flex flex-wrap items-center gap-5 text-xs text-dark-brown">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={galleryFeaturedOnHome}
+                      onChange={(e) => setGalleryFeaturedOnHome(e.target.checked)}
+                    />
+                    Feature on homepage strip
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={galleryCustomerPermitted}
+                      onChange={(e) => setGalleryCustomerPermitted(e.target.checked)}
+                    />
+                    Permission / Public Source Verified
+                  </label>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={savingGalleryPhoto}
+                  className="inline-flex items-center gap-2 rounded-full bg-dark-brown px-6 py-2.5 text-xs font-semibold uppercase tracking-wider text-cream hover:bg-cognac transition-colors disabled:opacity-60"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  {savingGalleryPhoto ? 'Adding Photo...' : 'Add to Gallery'}
+                </button>
+              </div>
+            </form>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {galleryList.map((photo) => (
+                <div
+                  key={photo.id}
+                  className="flex flex-col justify-between overflow-hidden rounded-3xl border border-beige-border bg-ivory p-4 shadow-sm space-y-3"
+                >
+                  <div className="space-y-3">
+                    <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-beige">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={photo.imageUrl}
+                        alt={photo.altText}
+                        className="h-full w-full object-cover"
+                      />
+                      <span className="absolute left-2.5 top-2.5 rounded-full bg-dark-brown/80 px-2.5 py-0.5 text-[10px] font-medium text-cream">
+                        {GALLERY_CATEGORY_LABELS[photo.categorySlug] ?? photo.categorySlug}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="font-serif text-lg font-semibold text-dark-brown">
+                        {photo.title}
+                      </h3>
+                      <p className="text-xs text-coffee-muted line-clamp-2">{photo.caption}</p>
+                      <p className="mt-1 font-mono text-[11px] text-coffee-muted">
+                        {photo.sourcePlatform} · {photo.attribution}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-beige-border pt-3">
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => void handleToggleGalleryFlag(photo, 'isPublished')}
+                        className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
+                          photo.isPublished
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-beige text-coffee-muted'
+                        }`}
+                      >
+                        {photo.isPublished ? 'Published' : 'Hidden'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleToggleGalleryFlag(photo, 'isFeaturedOnHome')}
+                        className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
+                          photo.isFeaturedOnHome
+                            ? 'bg-cognac text-white'
+                            : 'border border-beige-border text-coffee-muted'
+                        }`}
+                      >
+                        {photo.isFeaturedOnHome ? 'Home Featured' : 'Feature'}
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <a
+                        href={photo.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Open source for ${photo.title}`}
+                        className="rounded-full border border-beige-border p-1.5 text-coffee hover:border-cognac"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => void handleDeleteGalleryPhoto(photo.id)}
+                        aria-label={`Remove ${photo.title}`}
+                        className="rounded-full border border-beige-border p-1.5 text-coffee-muted hover:border-red-300 hover:text-red-700"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* AUDIT LOGS */}

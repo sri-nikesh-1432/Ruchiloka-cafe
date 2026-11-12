@@ -16,6 +16,8 @@ import { reservationsRouter } from './modules/reservations/reservations.routes';
 import { orderingRouter } from './modules/ordering/ordering.routes';
 import { contactRouter } from './modules/contact/contact.routes';
 import { adminRouter } from './modules/admin/admin.routes';
+import { reviewsRouter } from './modules/reviews/reviews.routes';
+import { galleryRouter } from './modules/gallery/gallery.routes';
 
 export function createApp() {
   const config = getConfig();
@@ -110,6 +112,12 @@ export function createApp() {
   app.use('/api/v1/auth/login', sensitiveLimiter);
   app.use('/api/v1/auth/register', sensitiveLimiter);
   app.use('/api/v1/contact', sensitiveLimiter);
+  app.use('/api/v1/reviews', (req, res, next) => {
+    if (req.method === 'POST') {
+      return sensitiveLimiter(req, res, next);
+    }
+    return next();
+  });
   app.use('/api/v1/reservations', (req, res, next) => {
     if (req.method === 'POST') {
       return sensitiveLimiter(req, res, next);
@@ -129,6 +137,8 @@ export function createApp() {
   app.use('/api/v1/reservations', reservationsRouter);
   app.use('/api/v1/ordering', orderingRouter);
   app.use('/api/v1/contact', contactRouter);
+  app.use('/api/v1/reviews', reviewsRouter);
+  app.use('/api/v1/gallery', galleryRouter);
   app.use('/api/v1/admin', adminRouter);
 
   app.use((_req, _res, next) => {

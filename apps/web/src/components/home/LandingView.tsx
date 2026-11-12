@@ -9,16 +9,31 @@ import {
   ArrowRight,
   ArrowUpRight,
   CalendarCheck,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Coffee,
+  ExternalLink,
   ImageIcon,
+  Instagram,
   Mail,
   MapPin,
+  MessageSquarePlus,
   Phone,
+  Star,
   Utensils,
   X,
 } from 'lucide-react';
-import { BUSINESS_INFO, type MenuItemDto } from '@ruchiloka/shared';
+import {
+  AUTHENTIC_GALLERY_ITEMS,
+  BUSINESS_INFO,
+  GALLERY_CATEGORY_LABELS,
+  GOOGLE_REVIEW_SUMMARY,
+  SUPPLIED_GOOGLE_REVIEWS,
+  VERIFIED_LINKS,
+  type AuthenticGallerySeedItem,
+  type MenuItemDto,
+} from '@ruchiloka/shared';
 import { useApp } from '@/context/AppContext';
 import { api } from '@/lib/api/endpoints';
 import {
@@ -104,38 +119,17 @@ const SIGNATURE_CATEGORY_PREVIEWS = [
   },
 ];
 
-const GALLERY_PHOTOS = [
-  {
-    src: '/images/gallery-warm-tables.webp',
-    alt: 'Warm lighting and cozy seating inside Ruchiloka Café',
-    caption: 'Kukatpally Dining Room',
-  },
-  {
-    src: '/images/gallery-tiffin-spread.webp',
-    alt: 'Traditional South Indian tiffin spread with dosa, idli, and vada',
-    caption: 'Morning Tiffin Rituals',
-  },
-  {
-    src: '/images/hero-coffee-pour.webp',
-    alt: 'Barista pouring steamed milk into espresso',
-    caption: 'Handcrafted Espresso & Filter Brews',
-  },
-  {
-    src: '/images/gallery-croissant-coffee.webp',
-    alt: 'Sunlit pastry croissant paired with hot coffee',
-    caption: 'Golden Hour Bakes',
-  },
-  {
-    src: '/images/gallery-sandwich-brew.webp',
-    alt: 'Artisan sandwich served beside warm ceramic coffee mugs',
-    caption: 'Warm Afternoon Plates',
-  },
-  {
-    src: '/images/gallery-idli-coffee.webp',
-    alt: 'Steamed idli sambar alongside frothy filter coffee',
-    caption: 'Comfort in Every Cup',
-  },
-];
+const FEATURED_GALLERY_PHOTOS: AuthenticGallerySeedItem[] = AUTHENTIC_GALLERY_ITEMS.filter(
+  (item) => item.isFeaturedOnHome
+);
+
+const INSTAGRAM_PREVIEW_PHOTOS: AuthenticGallerySeedItem[] = AUTHENTIC_GALLERY_ITEMS.filter(
+  (item) => item.showInInstagramPreview
+);
+
+const HOME_REVIEW_HIGHLIGHTS = [1, 4, 3, 9]
+  .map((id) => SUPPLIED_GOOGLE_REVIEWS.find((review) => review.id === id))
+  .filter((review): review is (typeof SUPPLIED_GOOGLE_REVIEWS)[number] => Boolean(review));
 
 export function LandingView() {
   const { publicSettings } = useApp();
@@ -146,9 +140,32 @@ export function LandingView() {
   const [highlights, setHighlights] = useState<MenuItemDto[]>([]);
   const [loadingHighlights, setLoadingHighlights] = useState(true);
   const [inspectItem, setInspectItem] = useState<MenuItemDto | null>(null);
-  const [lightboxImage, setLightboxImage] = useState<{ src: string; caption: string } | null>(null);
+  const [lightboxList, setLightboxList] = useState<AuthenticGallerySeedItem[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [showFullGallery, setShowFullGallery] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
+
+  const openLightbox = (items: AuthenticGallerySeedItem[], index: number) => {
+    setLightboxList(items);
+    setLightboxIndex(index);
+  };
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setLightboxIndex(null);
+      } else if (event.key === 'ArrowRight' && lightboxList.length > 1) {
+        setLightboxIndex((prev) => (prev === null ? null : (prev + 1) % lightboxList.length));
+      } else if (event.key === 'ArrowLeft' && lightboxList.length > 1) {
+        setLightboxIndex((prev) =>
+          prev === null ? null : (prev - 1 + lightboxList.length) % lightboxList.length
+        );
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [lightboxIndex, lightboxList.length]);
 
   useEffect(() => {
     const onScroll = () => setHasScrolled(window.scrollY > 40);
@@ -690,11 +707,11 @@ export function LandingView() {
 
             <div className="js-gallery-viewport overflow-x-auto lg:overflow-hidden pb-3 -mx-1 px-1">
               <div className="js-gallery-track flex gap-4 sm:gap-5 snap-x snap-mandatory lg:snap-none w-max lg:w-max">
-                {GALLERY_PHOTOS.map((photo, idx) => (
+                {FEATURED_GALLERY_PHOTOS.map((photo, idx) => (
                   <button
-                    key={photo.src}
+                    key={photo.slug}
                     type="button"
-                    onClick={() => setLightboxImage({ src: photo.src, caption: photo.caption })}
+                    onClick={() => openLightbox(FEATURED_GALLERY_PHOTOS, idx)}
                     className={`group relative snap-start w-64 sm:w-72 lg:w-[290px] shrink-0 overflow-hidden rounded-[22px] border border-beige-dark/80 bg-ivory p-2 text-left shadow-card transition-shadow hover:border-cognac hover:shadow-editorial focus:outline-none focus:ring-2 focus:ring-cognac ${
                       idx % 2 === 1 ? 'js-gallery-depth-even lg:mt-4' : ''
                     }`}
@@ -703,14 +720,14 @@ export function LandingView() {
                       <div className="relative aspect-[4/3] overflow-hidden bg-beige">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={photo.src}
-                          alt={photo.alt}
+                          src={photo.imageUrl}
+                          alt={photo.altText}
                           loading="lazy"
                           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent" />
                         <span className="absolute bottom-2.5 left-3 right-3 font-serif text-base font-medium text-white">
-                          {photo.caption}
+                          {photo.title}
                         </span>
                       </div>
                     </ImageMaskReveal>
@@ -725,35 +742,34 @@ export function LandingView() {
             <EditorialReveal delay={0.04} className="lg:col-span-4 flex">
               <TraditionalFramedCard className="w-full bg-ivory p-6 flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2 text-dark-brown">
                       <ImageIcon className="h-4 w-4 text-cognac" />
                       <h2 className="font-serif text-2xl font-semibold">Café Gallery</h2>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowFullGallery((prev) => !prev)}
-                      className="rounded-full border border-beige-border bg-cream px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-dark-brown hover:border-cognac transition-colors"
+                    <Link
+                      href="/gallery"
+                      className="inline-flex items-center gap-1 rounded-full border border-beige-border bg-cream px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-dark-brown hover:border-cognac transition-colors"
                     >
-                      {showFullGallery ? 'Show Compact' : 'Explore Gallery →'}
-                    </button>
+                      Explore Our Gallery <ArrowRight className="h-3 w-3" />
+                    </Link>
                   </div>
                   <p className="mt-1 text-xs text-coffee-muted">
-                    A glimpse of our Kukatpally coffee counter, warm tables, and plates.
+                    Real moments from our Kukatpally courtyard, juice counter, plates, and @ruchilokacafe.in.
                   </p>
 
                   <div className="mt-5 grid grid-cols-3 gap-2.5">
-                    {GALLERY_PHOTOS.slice(0, 3).map((photo) => (
+                    {FEATURED_GALLERY_PHOTOS.slice(0, 3).map((photo, idx) => (
                       <button
-                        key={photo.src}
+                        key={photo.slug}
                         type="button"
-                        onClick={() => setLightboxImage({ src: photo.src, caption: photo.caption })}
+                        onClick={() => openLightbox(FEATURED_GALLERY_PHOTOS, idx)}
                         className="group relative aspect-[3/4] overflow-hidden rounded-xl border border-beige-border bg-beige focus:outline-none focus:ring-2 focus:ring-cognac"
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={photo.src}
-                          alt={photo.alt}
+                          src={photo.imageUrl}
+                          alt={photo.altText}
                           loading="lazy"
                           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
@@ -763,7 +779,13 @@ export function LandingView() {
                 </div>
 
                 <div className="mt-5 pt-4 border-t border-beige-border/70 flex items-center justify-between text-xs text-coffee-muted">
-                  <span>Click any photograph to inspect</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowFullGallery((prev) => !prev)}
+                    className="font-medium text-cognac hover:underline focus:outline-none"
+                  >
+                    {showFullGallery ? 'Hide quick grid' : 'Quick expand highlights'}
+                  </button>
                   <Coffee className="h-4 w-4 text-cognac" />
                 </div>
               </TraditionalFramedCard>
@@ -899,24 +921,29 @@ export function LandingView() {
                 <div className="pt-4">
                   <ToranBorderStrip className="mb-6 opacity-60" />
                   <EditorialReveal className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {GALLERY_PHOTOS.map((photo) => (
+                    {FEATURED_GALLERY_PHOTOS.map((photo, idx) => (
                       <button
-                        key={photo.src}
+                        key={photo.slug}
                         type="button"
-                        onClick={() => setLightboxImage({ src: photo.src, caption: photo.caption })}
+                        onClick={() => openLightbox(FEATURED_GALLERY_PHOTOS, idx)}
                         className="group relative aspect-[16/10] overflow-hidden rounded-2xl border border-beige-border bg-ivory text-left shadow-card focus:outline-none focus:ring-2 focus:ring-cognac"
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={photo.src}
-                          alt={photo.alt}
+                          src={photo.imageUrl}
+                          alt={photo.altText}
                           loading="lazy"
                           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                        <span className="absolute bottom-3 left-4 font-serif text-base font-medium text-white">
-                          {photo.caption}
-                        </span>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
+                        <div className="absolute bottom-3 left-4 right-4">
+                          <span className="block font-serif text-base font-medium text-white">
+                            {photo.title}
+                          </span>
+                          <span className="block text-[11px] text-white/80">
+                            {GALLERY_CATEGORY_LABELS[photo.categorySlug]} · {photo.attribution}
+                          </span>
+                        </div>
                       </button>
                     ))}
                   </EditorialReveal>
@@ -924,6 +951,195 @@ export function LandingView() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Compact Authentic Instagram Preview Strip (@ruchilokacafe.in) */}
+          <div className="pt-4">
+            <ToranBorderStrip className="mb-8 opacity-60" />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-6">
+              <div>
+                <span className="editorial-kicker">— Official Instagram —</span>
+                <h2 className="mt-1 editorial-heading text-2xl sm:text-3xl font-semibold">
+                  <TextReveal>Stories from {VERIFIED_LINKS.instagramHandle}</TextReveal>
+                </h2>
+              </div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <a
+                  href={VERIFIED_LINKS.instagramProfileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-beige-dark bg-ivory px-4 py-2 text-xs font-semibold text-dark-brown shadow-card transition-colors hover:border-cognac hover:text-cognac"
+                >
+                  <Instagram className="h-3.5 w-3.5 text-cognac" />
+                  Follow on Instagram
+                  <ExternalLink className="h-3 w-3 opacity-70" />
+                </a>
+                <Link
+                  href="/gallery"
+                  className="btn-espresso inline-flex items-center gap-1.5 text-xs"
+                >
+                  Full Photo Archive <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            </div>
+
+            <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+              {INSTAGRAM_PREVIEW_PHOTOS.slice(0, 6).map((post, idx) => (
+                <div
+                  key={post.slug}
+                  className="group flex flex-col overflow-hidden rounded-2xl border border-beige-dark/80 bg-ivory shadow-card transition-all hover:border-cognac hover:shadow-editorial"
+                >
+                  <button
+                    type="button"
+                    onClick={() => openLightbox(INSTAGRAM_PREVIEW_PHOTOS, idx)}
+                    className="relative aspect-[4/5] w-full overflow-hidden bg-beige text-left focus:outline-none focus:ring-2 focus:ring-cognac"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={post.imageUrl}
+                      alt={post.altText}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <span className="absolute left-2.5 top-2.5 rounded-full bg-dark-brown/75 px-2.5 py-0.5 text-[10px] font-medium text-cream backdrop-blur-sm">
+                      {post.isCustomerOrCreator ? 'Featured' : 'Official Post'}
+                    </span>
+                  </button>
+                  <div className="flex flex-1 flex-col justify-between p-3 space-y-2">
+                    <div>
+                      <p className="font-serif text-sm font-semibold text-dark-brown line-clamp-1">
+                        {post.title}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-coffee-muted line-clamp-2">
+                        {post.attribution}
+                      </p>
+                    </div>
+                    <a
+                      href={post.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-cognac hover:underline"
+                    >
+                      View post <ArrowUpRight className="h-3 w-3" />
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 9: GOOGLE BUSINESS PROFILE & CUSTOMER FEEDBACK PREVIEW */}
+      <section className="relative overflow-hidden bg-cream py-16 sm:py-24">
+        <div className="editorial-container space-y-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="space-y-2 max-w-2xl">
+              <span className="editorial-kicker">— Guest Feedback —</span>
+              <h2 className="editorial-heading text-3xl sm:text-4xl font-semibold">
+                <TextReveal>Voices from Ruchiloka</TextReveal>
+              </h2>
+              <p className="text-sm text-coffee-muted leading-relaxed">
+                Real reviews from guests who visited our Vivekananda Nagar courtyard for morning
+                pesarattu, handcrafted milkshakes, fresh juices, and evening conversations.
+              </p>
+            </div>
+
+            <TraditionalFramedCard className="bg-ivory px-5 py-4 flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-cognac/15 text-cognac">
+                  <Star className="h-5 w-5 fill-cognac text-cognac" />
+                </div>
+                <div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="font-serif text-2xl font-bold text-dark-brown">
+                      {GOOGLE_REVIEW_SUMMARY.rating.toFixed(1)}
+                    </span>
+                    <span className="text-xs text-coffee-muted">/ 5.0</span>
+                  </div>
+                  <p className="text-[11px] text-coffee-muted">
+                    {GOOGLE_REVIEW_SUMMARY.reviewCount} Google Reviews
+                  </p>
+                </div>
+              </div>
+              <div className="h-8 w-px bg-beige-border hidden sm:block" />
+              <a
+                href={VERIFIED_LINKS.googleMapsCanonicalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-full border border-beige-dark bg-cream px-4 py-2 text-xs font-semibold text-dark-brown hover:border-cognac transition-colors"
+              >
+                Read Our Google Reviews <ExternalLink className="h-3.5 w-3.5 text-cognac" />
+              </a>
+            </TraditionalFramedCard>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {GOOGLE_REVIEW_SUMMARY.topicHighlights.slice(0, 7).map((topic) => (
+              <span
+                key={topic.label}
+                className="rounded-full border border-beige-border bg-ivory px-3.5 py-1 text-xs text-coffee-muted"
+              >
+                {topic.label} <strong className="text-dark-brown">({topic.count})</strong>
+              </span>
+            ))}
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+            {HOME_REVIEW_HIGHLIGHTS.map((review) => (
+              <TraditionalFramedCard
+                key={review.id}
+                className="bg-ivory p-5 flex flex-col justify-between gap-4"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-serif text-lg font-semibold text-dark-brown leading-snug">
+                        {review.reviewerName}
+                      </p>
+                      <p className="text-[11px] text-coffee-muted">
+                        {review.postedAgo}
+                        {review.visitDetails ? ` · ${review.visitDetails}` : ''}
+                      </p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-beige-soft px-2.5 py-0.5 text-[10px] font-medium text-cognac">
+                      Google
+                    </span>
+                  </div>
+                  <p className="text-sm leading-relaxed text-dark-brown/90 whitespace-pre-line">
+                    &ldquo;{review.reviewText}&rdquo;
+                  </p>
+                </div>
+
+                {review.ownerResponse && (
+                  <div className="rounded-xl border border-beige-border/80 bg-cream/70 px-3 py-2 text-xs text-coffee-muted">
+                    <span className="font-semibold text-dark-brown">Owner reply: </span>
+                    {review.ownerResponse}
+                  </div>
+                )}
+              </TraditionalFramedCard>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+            <p className="text-xs text-coffee-muted">
+              Individual Google star counts are shown only when explicitly recorded; overall Google score is 4.7/5 across 57 reviews.
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href="/reviews"
+                className="rounded-full border border-beige-dark bg-ivory px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-dark-brown transition-colors hover:border-cognac"
+              >
+                View All Reviews →
+              </Link>
+              <Link
+                href="/reviews#write-review"
+                className="btn-espresso inline-flex items-center gap-2 text-xs"
+              >
+                <MessageSquarePlus className="h-4 w-4" />
+                Write a Review
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -932,18 +1148,18 @@ export function LandingView() {
 
       {/* Gallery Lightbox */}
       <AnimatePresence>
-        {lightboxImage && (
+        {lightboxIndex !== null && lightboxList[lightboxIndex] && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
             role="dialog"
             aria-modal="true"
-            onClick={() => setLightboxImage(null)}
+            onClick={() => setLightboxIndex(null)}
           >
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+              className="fixed inset-0 bg-black/85 backdrop-blur-sm"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -951,24 +1167,71 @@ export function LandingView() {
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.25 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative z-10 max-h-[88vh] max-w-4xl overflow-hidden rounded-3xl border border-white/15 bg-dark-brown shadow-modal"
+              className="relative z-10 max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-3xl border border-white/15 bg-dark-brown shadow-modal"
             >
               <button
                 type="button"
-                onClick={() => setLightboxImage(null)}
+                onClick={() => setLightboxIndex(null)}
                 aria-label="Close image preview"
                 className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
               >
                 <X className="h-4 w-4" />
               </button>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={lightboxImage.src}
-                alt={lightboxImage.caption}
-                className="max-h-[78vh] w-auto object-contain"
-              />
-              <div className="px-6 py-4 text-center font-serif text-lg text-cream">
-                {lightboxImage.caption}
+              {lightboxList.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setLightboxIndex((prev) =>
+                        prev === null
+                          ? null
+                          : (prev - 1 + lightboxList.length) % lightboxList.length
+                      )
+                    }
+                    aria-label="Previous photograph"
+                    className="absolute left-3 top-1/2 z-10 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setLightboxIndex((prev) =>
+                        prev === null ? null : (prev + 1) % lightboxList.length
+                      )
+                    }
+                    aria-label="Next photograph"
+                    className="absolute right-3 top-1/2 z-10 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </>
+              )}
+              <div className="flex items-center justify-center bg-black/40">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={lightboxList[lightboxIndex].imageUrl}
+                  alt={lightboxList[lightboxIndex].altText}
+                  className="max-h-[70vh] w-auto object-contain"
+                />
+              </div>
+              <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="font-serif text-lg text-cream">
+                    {lightboxList[lightboxIndex].title}
+                  </h3>
+                  <p className="text-xs text-beige/80">
+                    {lightboxList[lightboxIndex].caption} · {lightboxList[lightboxIndex].attribution}
+                  </p>
+                </div>
+                <a
+                  href={lightboxList[lightboxIndex].sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/25 px-3.5 py-1.5 text-xs font-medium text-cream hover:border-cognac-light"
+                >
+                  Source <ExternalLink className="h-3 w-3" />
+                </a>
               </div>
             </motion.div>
           </div>

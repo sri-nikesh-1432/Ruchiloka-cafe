@@ -179,3 +179,73 @@ export const AdminSettingsSchema = z.object({
     )
     .optional(),
 });
+
+export const ReviewModerationStatusSchema = z.enum(['PENDING', 'APPROVED', 'REJECTED']);
+export type ReviewModerationStatus = z.infer<typeof ReviewModerationStatusSchema>;
+
+export const GallerySourcePlatformSchema = z.enum([
+  'GOOGLE_MAPS',
+  'INSTAGRAM',
+  'OWNER_UPLOAD',
+]);
+export type GallerySourcePlatform = z.infer<typeof GallerySourcePlatformSchema>;
+
+export const GalleryCategorySlugSchema = z.enum([
+  'cafe-ambience',
+  'outdoor-seating',
+  'breakfast',
+  'food',
+  'milkshakes',
+  'evening-experience',
+  'cafe-exterior',
+  'community-activities',
+]);
+
+export const CreateWebsiteReviewSchema = z.object({
+  customerName: z.string().trim().min(2, 'Please enter your name (min 2 characters)').max(80),
+  rating: z.coerce
+    .number()
+    .int()
+    .min(1, 'Please select a star rating from 1 to 5')
+    .max(5, 'Star rating must be between 1 and 5'),
+  title: z
+    .string()
+    .trim()
+    .max(120, 'Review title cannot exceed 120 characters')
+    .optional()
+    .or(z.literal('')),
+  message: z
+    .string()
+    .trim()
+    .min(8, 'Please write at least 8 characters sharing your experience')
+    .max(1500, 'Review message cannot exceed 1,500 characters'),
+});
+
+export const AdminModerateReviewSchema = z.object({
+  status: ReviewModerationStatusSchema,
+  adminNote: z.string().trim().max(400).optional().or(z.literal('')),
+});
+
+export const AdminGalleryPhotoSchema = z.object({
+  title: z.string().trim().min(2, 'Title is required').max(120),
+  categorySlug: GalleryCategorySlugSchema,
+  imageUrl: z.string().trim().min(1, 'Image URL is required').max(1500),
+  width: z.coerce.number().int().min(100).max(6000).default(1200),
+  height: z.coerce.number().int().min(100).max(6000).default(900),
+  caption: z.string().trim().min(4, 'Caption is required').max(400),
+  altText: z.string().trim().min(4, 'Alt text is required').max(300),
+  sourcePlatform: GallerySourcePlatformSchema.default('OWNER_UPLOAD'),
+  sourceUrl: z.string().trim().min(1).max(1000),
+  attribution: z.string().trim().min(2).max(160),
+  isCustomerOrCreator: z.boolean().default(false),
+  permissionNote: z.string().trim().max(400).optional().nullable(),
+  isFeaturedOnHome: z.boolean().default(false),
+  showInInstagramPreview: z.boolean().default(false),
+  isPublished: z.boolean().default(true),
+  displayOrder: z.coerce.number().int().min(0).max(9999).default(0),
+});
+
+export const AdminUpdateGalleryPhotoSchema = AdminGalleryPhotoSchema.partial().refine(
+  (obj) => Object.keys(obj).length > 0,
+  'At least one gallery field must be provided'
+);

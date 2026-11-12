@@ -1,7 +1,12 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import { PrismaClient, UserRole } from '@prisma/client';
-import { BUSINESS_INFO, DEFAULT_OPERATING_WINDOWS } from '@ruchiloka/shared';
+import {
+  AUTHENTIC_GALLERY_ITEMS,
+  BUSINESS_INFO,
+  DEFAULT_OPERATING_WINDOWS,
+  VERIFIED_LINKS,
+} from '@ruchiloka/shared';
 
 const prisma = new PrismaClient();
 
@@ -81,6 +86,7 @@ async function main() {
       swiggyListingUrl: process.env.SWIGGY_LISTING_URL || null,
       zomatoRestaurantId: process.env.ZOMATO_RESTAURANT_ID || null,
       zomatoListingUrl: process.env.ZOMATO_LISTING_URL || null,
+      instagramUrl: VERIFIED_LINKS.instagramProfileUrl,
     },
   });
 
@@ -105,7 +111,50 @@ async function main() {
     },
   });
 
-  // 4. Optional initial Admin account (strictly driven by env vars, never hardcoded password)
+  // 4. Verified Authentic Gallery Photos Manifest (Google Maps + Official Instagram)
+  for (const item of AUTHENTIC_GALLERY_ITEMS) {
+    await prisma.galleryPhoto.upsert({
+      where: { slug: item.slug },
+      update: {
+        title: item.title,
+        categorySlug: item.categorySlug,
+        imageUrl: item.imageUrl,
+        width: item.width,
+        height: item.height,
+        caption: item.caption,
+        altText: item.altText,
+        sourcePlatform: item.sourcePlatform,
+        sourceUrl: item.sourceUrl,
+        attribution: item.attribution,
+        isCustomerOrCreator: item.isCustomerOrCreator,
+        permissionNote: item.permissionNote,
+        isFeaturedOnHome: item.isFeaturedOnHome,
+        showInInstagramPreview: item.showInInstagramPreview,
+        displayOrder: item.displayOrder,
+      },
+      create: {
+        slug: item.slug,
+        title: item.title,
+        categorySlug: item.categorySlug,
+        imageUrl: item.imageUrl,
+        width: item.width,
+        height: item.height,
+        caption: item.caption,
+        altText: item.altText,
+        sourcePlatform: item.sourcePlatform,
+        sourceUrl: item.sourceUrl,
+        attribution: item.attribution,
+        isCustomerOrCreator: item.isCustomerOrCreator,
+        permissionNote: item.permissionNote,
+        isFeaturedOnHome: item.isFeaturedOnHome,
+        showInInstagramPreview: item.showInInstagramPreview,
+        isPublished: true,
+        displayOrder: item.displayOrder,
+      },
+    });
+  }
+
+  // 5. Optional initial Admin account (strictly driven by env vars, never hardcoded password)
   const seedAdminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
   const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD;
   const seedAdminName = process.env.SEED_ADMIN_NAME?.trim() || 'Ruchiloka Admin';

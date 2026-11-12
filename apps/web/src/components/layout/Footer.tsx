@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { ArrowUpRight, Clock, ExternalLink, Mail, MapPin, Phone } from 'lucide-react';
-import { BUSINESS_INFO } from '@ruchiloka/shared';
+import { BUSINESS_INFO, VERIFIED_LINKS } from '@ruchiloka/shared';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 import { ToranBorderStrip } from '@/components/brand/TraditionalOrnaments';
 import { useApp } from '@/context/AppContext';
@@ -67,17 +67,24 @@ export function Footer() {
                 Get Directions
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </a>
-              {publicSettings.instagramUrl && (
                 <a
-                  href={publicSettings.instagramUrl}
+                  href={publicSettings.instagramUrl || VERIFIED_LINKS.instagramProfileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-full border border-beige/25 px-4 py-2 text-xs font-medium tracking-wide text-cream transition-colors hover:border-cognac hover:bg-cognac/15"
                 >
-                  Instagram
+                  Follow Us on Instagram
                   <ExternalLink className="h-3 w-3" />
                 </a>
-              )}
+                <a
+                  href={VERIFIED_LINKS.googleMapsCanonicalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-beige/25 px-4 py-2 text-xs font-medium tracking-wide text-cream transition-colors hover:border-cognac hover:bg-cognac/15"
+                >
+                  Read Our Google Reviews
+                  <ExternalLink className="h-3 w-3" />
+                </a>
               {publicSettings.facebookUrl && (
                 <a
                   href={publicSettings.facebookUrl}
@@ -126,6 +133,16 @@ export function Footer() {
               <li>
                 <Link href="/reserve" className="hover:text-white transition-colors">
                   Reserve a Table
+                </Link>
+              </li>
+              <li>
+                <Link href="/gallery" className="hover:text-white transition-colors">
+                  Gallery
+                </Link>
+              </li>
+              <li>
+                <Link href="/reviews" className="hover:text-white transition-colors">
+                  Customer Reviews
                 </Link>
               </li>
               <li>

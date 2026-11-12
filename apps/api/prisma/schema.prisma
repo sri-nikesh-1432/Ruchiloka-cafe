@@ -32,6 +32,18 @@ enum EmailDeliveryStatus {
   SKIPPED
 }
 
+enum ReviewModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum GallerySourcePlatform {
+  GOOGLE_MAPS
+  INSTAGRAM
+  OWNER_UPLOAD
+}
+
 model User {
   id                    String         @id @default(uuid()) @db.Uuid
   email                 String         @unique
@@ -46,12 +58,13 @@ model User {
   createdAt             DateTime       @default(now()) @map("created_at")
   updatedAt             DateTime       @updatedAt @map("updated_at")
 
-  accounts     Account[]
-  sessions     Session[]
-  cart         Cart?
-  reservations Reservation[]
-  handoffs     OrderHandoff[]
-  auditLogs    AuditLog[]
+  accounts         Account[]
+  sessions         Session[]
+  cart             Cart?
+  reservations     Reservation[]
+  handoffs         OrderHandoff[]
+  auditLogs        AuditLog[]
+  moderatedReviews WebsiteReview[]
 
   @@map("users")
 }
@@ -366,4 +379,51 @@ model AuditLog {
   @@index([createdAt])
   @@index([entityType, entityId])
   @@map("audit_logs")
+}
+
+model WebsiteReview {
+  id            String                 @id @default(uuid()) @db.Uuid
+  customerName  String                 @map("customer_name")
+  rating        Int
+  title         String?
+  message       String
+  photoUrl      String?                @map("photo_url")
+  status        ReviewModerationStatus @default(PENDING)
+  adminNote     String?                @map("admin_note")
+  moderatedById String?                @map("moderated_by_id") @db.Uuid
+  moderatedAt   DateTime?              @map("moderated_at")
+  ipAddress     String?                @map("ip_address")
+  createdAt     DateTime               @default(now()) @map("created_at")
+  updatedAt     DateTime               @updatedAt @map("updated_at")
+
+  moderatedBy User? @relation(fields: [moderatedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@map("website_reviews")
+}
+
+model GalleryPhoto {
+  id                     String                @id @default(uuid()) @db.Uuid
+  slug                   String                @unique
+  title                  String
+  categorySlug           String                @map("category_slug")
+  imageUrl               String                @map("image_url")
+  width                  Int                   @default(1200)
+  height                 Int                   @default(900)
+  caption                String
+  altText                String                @map("alt_text")
+  sourcePlatform         GallerySourcePlatform @map("source_platform")
+  sourceUrl              String                @map("source_url")
+  attribution            String
+  isCustomerOrCreator    Boolean               @default(false) @map("is_customer_or_creator")
+  permissionNote         String?               @map("permission_note")
+  isFeaturedOnHome       Boolean               @default(false) @map("is_featured_on_home")
+  showInInstagramPreview Boolean               @default(false) @map("show_in_instagram_preview")
+  isPublished            Boolean               @default(true) @map("is_published")
+  displayOrder           Int                   @default(0) @map("display_order")
+  createdAt              DateTime              @default(now()) @map("created_at")
+  updatedAt              DateTime              @updatedAt @map("updated_at")
+
+  @@index([isPublished, categorySlug, displayOrder])
+  @@map("gallery_photos")
 }

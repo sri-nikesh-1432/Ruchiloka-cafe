@@ -1,5 +1,12 @@
-import { OrderingProvider, ReservationStatus, UserRole } from './schemas';
+import {
+  GallerySourcePlatform,
+  OrderingProvider,
+  ReservationStatus,
+  ReviewModerationStatus,
+  UserRole,
+} from './schemas';
 import { MenuCategorySlug, OperatingWindow } from './business';
+import { GalleryCategorySlug } from './authenticContent';
 
 export interface AuthUser {
   id: string;
@@ -155,4 +162,58 @@ export interface AdminSettingsDto extends PublicSiteSettingsDto {
   zomatoRestaurantId: string | null;
   swiggyApiHandoffEnabled: boolean;
   zomatoApiHandoffEnabled: boolean;
+}
+
+export interface WebsiteReviewDto {
+  id: string;
+  customerName: string;
+  rating: number;
+  title: string | null;
+  message: string;
+  photoUrl: string | null;
+  status: ReviewModerationStatus;
+  adminNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WebsiteReviewStatsDto {
+  approvedCount: number;
+  averageRating: number | null;
+}
+
+export interface PublicReviewsPayloadDto {
+  websiteReviews: WebsiteReviewDto[];
+  websiteStats: WebsiteReviewStatsDto;
+}
+
+export interface GalleryPhotoDto {
+  id: string;
+  slug: string;
+  title: string;
+  categorySlug: GalleryCategorySlug;
+  imageUrl: string;
+  width: number;
+  height: number;
+  caption: string;
+  altText: string;
+  sourcePlatform: GallerySourcePlatform;
+  sourceUrl: string;
+  attribution: string;
+  isCustomerOrCreator: boolean;
+  permissionNote: string | null;
+  isFeaturedOnHome: boolean;
+  showInInstagramPreview: boolean;
+  isPublished: boolean;
+  displayOrder: number;
+  createdAt: string;
+}
+
+export interface PublicGalleryPayloadDto {
+  photos: GalleryPhotoDto[];
+  categories: Array<{
+    slug: GalleryCategorySlug;
+    label: string;
+    count: number;
+  }>;
 }

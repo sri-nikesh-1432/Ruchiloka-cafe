@@ -1,6 +1,7 @@
 import {
   BUSINESS_INFO,
   DEFAULT_OPERATING_WINDOWS,
+  VERIFIED_LINKS,
   type AdminSettingsDto,
   type OperatingWindow,
   type PublicSiteSettingsDto,
@@ -39,6 +40,7 @@ export async function getOrCreateSettingsRecord() {
       swiggyListingUrl: config.ordering.swiggyListingUrl ?? null,
       zomatoRestaurantId: config.ordering.zomatoRestaurantId ?? null,
       zomatoListingUrl: config.ordering.zomatoListingUrl ?? null,
+      instagramUrl: VERIFIED_LINKS.instagramProfileUrl,
     },
   });
 }
@@ -54,7 +56,7 @@ export async function getPublicSettings(): Promise<PublicSiteSettingsDto> {
     operatingHours: parseOperatingHours(record.operatingHoursJson),
     reservationSlotMinutes: record.reservationSlotMinutes,
     maxGuestsPerSlot: record.maxGuestsPerSlot,
-    instagramUrl: record.instagramUrl,
+    instagramUrl: record.instagramUrl ?? VERIFIED_LINKS.instagramProfileUrl,
     facebookUrl: record.facebookUrl,
     swiggyListingUrl: record.swiggyListingUrl ?? config.ordering.swiggyListingUrl ?? null,
     zomatoListingUrl: record.zomatoListingUrl ?? config.ordering.zomatoListingUrl ?? null,

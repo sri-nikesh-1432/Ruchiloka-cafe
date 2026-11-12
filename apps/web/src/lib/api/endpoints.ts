@@ -2,15 +2,20 @@ import type {
   AdminSettingsDto,
   AuthUser,
   CartDto,
+  GalleryPhotoDto,
   MenuCategoryDto,
   MenuItemDto,
   OrderHandoffResultDto,
   OrderingProvider,
   OrderingProviderStatusDto,
+  PublicGalleryPayloadDto,
+  PublicReviewsPayloadDto,
   PublicSiteSettingsDto,
   ReservationDto,
   ReservationSlotAvailabilityDto,
   ReservationStatus,
+  ReviewModerationStatus,
+  WebsiteReviewDto,
 } from '@ruchiloka/shared';
 import { apiFetch } from './client';
 
@@ -196,6 +201,46 @@ export const api = {
       }),
   },
 
+  reviews: {
+    listApproved: () => apiFetch<PublicReviewsPayloadDto>('/reviews'),
+    submit: (data: {
+      customerName: string;
+      rating: number;
+      title?: string;
+      message: string;
+      photoFile?: File | null;
+    }) => {
+      if (data.photoFile) {
+        const formData = new FormData();
+        formData.append('customerName', data.customerName);
+        formData.append('rating', String(data.rating));
+        if (data.title) formData.append('title', data.title);
+        formData.append('message', data.message);
+        formData.append('photo', data.photoFile);
+        return apiFetch<{ review: WebsiteReviewDto; message: string }>('/reviews', {
+          method: 'POST',
+          body: formData,
+        });
+      }
+      return apiFetch<{ review: WebsiteReviewDto; message: string }>('/reviews', {
+        method: 'POST',
+        body: {
+          customerName: data.customerName,
+          rating: data.rating,
+          title: data.title || '',
+          message: data.message,
+        },
+      });
+    },
+  },
+
+  gallery: {
+    list: (category?: string) =>
+      apiFetch<PublicGalleryPayloadDto>('/gallery', {
+        query: category && category !== 'all' ? { category } : undefined,
+      }),
+  },
+
   admin: {
     dashboard: () =>
       apiFetch<{
@@ -208,6 +253,9 @@ export const api = {
           availableMenuItems: number;
           unavailableMenuItems: number;
           recentEnquiriesCount: number;
+          pendingReviewsCount?: number;
+          approvedReviewsCount?: number;
+          publishedGalleryCount?: number;
         };
         recentReservations: ReservationDto[];
         recentEnquiries: Array<{
@@ -277,5 +325,48 @@ export const api = {
           createdAt: string;
         }>
       >('/admin/audit-logs'),
+
+    listReviews: (status?: string) =>
+      apiFetch<{
+        reviews: WebsiteReviewDto[];
+        counts: {
+          pendingCount: number;
+          approvedCount: number;
+          rejectedCount: number;
+          totalCount: number;
+        };
+      }>('/admin/reviews', { query: status ? { status } : undefined }),
+
+    moderateReview: (id: string, status: ReviewModerationStatus, adminNote?: string) =>
+      apiFetch<WebsiteReviewDto>(`/admin/reviews/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: { status, adminNote },
+      }),
+
+    deleteReview: (id: string) =>
+      apiFetch<{ deleted: boolean }>(`/admin/reviews/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      }),
+
+    listGallery: () => apiFetch<GalleryPhotoDto[]>('/admin/gallery'),
+    createGalleryPhoto: (data: Record<string, unknown>) =>
+      apiFetch<GalleryPhotoDto>('/admin/gallery', { method: 'POST', body: data }),
+    updateGalleryPhoto: (id: string, data: Record<string, unknown>) =>
+      apiFetch<GalleryPhotoDto>(`/admin/gallery/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: data,
+      }),
+    deleteGalleryPhoto: (id: string) =>
+      apiFetch<{ deleted: boolean }>(`/admin/gallery/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      }),
+    uploadGalleryImage: (file: File) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      return apiFetch<{ imageUrl: string }>('/admin/gallery/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+    },
   },
 };

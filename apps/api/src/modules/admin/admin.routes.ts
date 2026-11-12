@@ -2,14 +2,30 @@ import { Router } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
 import {
+  AdminGalleryPhotoSchema,
   AdminMenuItemSchema,
+  AdminModerateReviewSchema,
   AdminSettingsSchema,
+  AdminUpdateGalleryPhotoSchema,
   ReservationStatusSchema,
 } from '@ruchiloka/shared';
 import { asyncHandler, HttpError } from '../../lib/errors';
 import { requireAdmin } from '../../middleware/auth';
 import { validateBody } from '../../middleware/validate';
+import { storeUploadedImage } from '../../lib/uploads';
+import { recordAuditLog } from '../audit/audit.service';
 import { getAdminSettings } from '../settings/settings.service';
+import {
+  createAdminGalleryPhoto,
+  deleteAdminGalleryPhoto,
+  listAdminGalleryPhotos,
+  updateAdminGalleryPhoto,
+} from '../gallery/gallery.service';
+import {
+  deleteWebsiteReview,
+  listAdminWebsiteReviews,
+  moderateWebsiteReview,
+} from '../reviews/reviews.service';
 import {
   createAdminMenuItem,
   deleteAdminMenuItem,
@@ -234,5 +250,137 @@ adminRouter.get(
   asyncHandler(async (_req, res) => {
     const logs = await listAuditLogs();
     res.json({ success: true, data: logs });
+  })
+);
+
+adminRouter.get(
+  '/reviews',
+  asyncHandler(async (req, res) => {
+    const status = typeof req.query.status === 'string' ? req.query.status : undefined;
+    const result = await listAdminWebsiteReviews(status);
+    res.json({ success: true, data: result });
+  })
+);
+
+adminRouter.patch(
+  '/reviews/:id',
+  validateBody(AdminModerateReviewSchema),
+  asyncHandler(async (req, res) => {
+    const id = String(req.params.id);
+    if (!z.string().uuid().safeParse(id).success) {
+      throw new HttpError(400, 'Invalid review ID.', 'INVALID_ID');
+    }
+
+    const updated = await moderateWebsiteReview({
+      id,
+      status: req.body.status,
+      adminNote: req.body.adminNote,
+      actor: req.currentUser!,
+      ipAddress: req.ip,
+    });
+    res.json({ success: true, data: updated });
+  })
+);
+
+adminRouter.delete(
+  '/reviews/:id',
+  asyncHandler(async (req, res) => {
+    const id = String(req.params.id);
+    if (!z.string().uuid().safeParse(id).success) {
+      throw new HttpError(400, 'Invalid review ID.', 'INVALID_ID');
+    }
+
+    const result = await deleteWebsiteReview({
+      id,
+      actor: req.currentUser!,
+      ipAddress: req.ip,
+    });
+    res.json({ success: true, data: result });
+  })
+);
+
+adminRouter.get(
+  '/gallery',
+  asyncHandler(async (_req, res) => {
+    const photos = await listAdminGalleryPhotos();
+    res.json({ success: true, data: photos });
+  })
+);
+
+adminRouter.post(
+  '/gallery',
+  validateBody(AdminGalleryPhotoSchema),
+  asyncHandler(async (req, res) => {
+    const created = await createAdminGalleryPhoto({
+      input: req.body,
+      actor: req.currentUser!,
+      ipAddress: req.ip,
+    });
+    res.status(201).json({ success: true, data: created });
+  })
+);
+
+adminRouter.post(
+  '/gallery/upload-image',
+  upload.single('image'),
+  asyncHandler(async (req, res) => {
+    if (!req.file) {
+      throw new HttpError(400, 'No image file provided.', 'MISSING_FILE');
+    }
+
+    const uploaded = await storeUploadedImage({
+      file: req.file,
+      folder: 'ruchiloka/gallery',
+      prefix: 'gallery',
+      strictMagicBytes: true,
+      allowDataUriFallbackInServerless: true,
+    });
+
+    await recordAuditLog({
+      actorUserId: req.currentUser!.id,
+      actorEmail: req.currentUser!.email,
+      action: 'ADMIN_GALLERY_IMAGE_UPLOADED',
+      entityType: 'Media',
+      metadata: { storage: uploaded.storage },
+      ipAddress: req.ip,
+    });
+
+    res.status(201).json({ success: true, data: { imageUrl: uploaded.imageUrl } });
+  })
+);
+
+adminRouter.patch(
+  '/gallery/:id',
+  validateBody(AdminUpdateGalleryPhotoSchema),
+  asyncHandler(async (req, res) => {
+    const id = String(req.params.id);
+    if (!z.string().uuid().safeParse(id).success) {
+      throw new HttpError(400, 'Invalid gallery photo ID.', 'INVALID_ID');
+    }
+
+    const updated = await updateAdminGalleryPhoto({
+      id,
+      input: req.body,
+      actor: req.currentUser!,
+      ipAddress: req.ip,
+    });
+    res.json({ success: true, data: updated });
+  })
+);
+
+adminRouter.delete(
+  '/gallery/:id',
+  asyncHandler(async (req, res) => {
+    const id = String(req.params.id);
+    if (!z.string().uuid().safeParse(id).success) {
+      throw new HttpError(400, 'Invalid gallery photo ID.', 'INVALID_ID');
+    }
+
+    const result = await deleteAdminGalleryPhoto({
+      id,
+      actor: req.currentUser!,
+      ipAddress: req.ip,
+    });
+    res.json({ success: true, data: result });
   })
 );

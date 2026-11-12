@@ -9,13 +9,20 @@
 
 [functions]
   node_bundler = "esbuild"
+
+[functions."api"]
   external_node_modules = ["@prisma/client", ".prisma/client"]
   included_files = [
     "node_modules/.prisma/client/**",
     "node_modules/@prisma/client/**",
-    "apps/api/node_modules/.prisma/client/**",
-    "apps/api/node_modules/@prisma/client/**",
-    "apps/api/prisma/schema.prisma"
+    "apps/api/prisma/schema.prisma",
+    "!**/query_engine-windows.dll.node",
+    "!**/libquery_engine-debian*",
+    "!**/libquery_engine-darwin*",
+    "!node_modules/@prisma/engines/**",
+    "!**/*.wasm",
+    "!node_modules/@prisma/client/runtime/*wasm*",
+    "!apps/api/node_modules/**"
   ]
 
 [[redirects]]

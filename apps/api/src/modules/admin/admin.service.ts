@@ -1,7 +1,5 @@
 import crypto from 'node:crypto';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { ReservationStatus } from '@prisma/client';
+import { ReservationStatus, ReviewModerationStatus } from '@prisma/client';
 import {
   formatMinutesTo12Hour,
   parseTime24ToMinutes,
@@ -12,7 +10,7 @@ import {
 } from '@ruchiloka/shared';
 import { prisma } from '../../lib/prisma';
 import { HttpError } from '../../lib/errors';
-import { getConfig } from '../../config/env';
+import { storeUploadedImage } from '../../lib/uploads';
 import { mapMenuItemToDto } from '../menu/menu.service';
 import { mapReservationToDto } from '../reservations/reservations.service';
 import { getAdminSettings, getOrCreateSettingsRecord } from '../settings/settings.service';
@@ -38,6 +36,9 @@ export async function getAdminDashboard() {
     recentReservations,
     recentEnquiries,
     recentEnquiriesCount,
+    pendingReviewsCount,
+    approvedReviewsCount,
+    publishedGalleryCount,
   ] = await Promise.all([
     prisma.reservation.count(),
     prisma.reservation.count({ where: { status: ReservationStatus.PENDING } }),
@@ -54,6 +55,9 @@ export async function getAdminDashboard() {
       take: 8,
     }),
     prisma.contactMessage.count(),
+    prisma.websiteReview.count({ where: { status: ReviewModerationStatus.PENDING } }),
+    prisma.websiteReview.count({ where: { status: ReviewModerationStatus.APPROVED } }),
+    prisma.galleryPhoto.count({ where: { isPublished: true } }),
   ]);
 
   return {
@@ -66,6 +70,9 @@ export async function getAdminDashboard() {
       availableMenuItems,
       unavailableMenuItems: Math.max(0, totalMenuItems - availableMenuItems),
       recentEnquiriesCount,
+      pendingReviewsCount,
+      approvedReviewsCount,
+      publishedGalleryCount,
     },
     recentReservations: recentReservations.map(mapReservationToDto),
     recentEnquiries: recentEnquiries.map((e) => ({
@@ -411,136 +418,29 @@ export async function deleteAdminMenuItem(params: {
   return { deleted: true };
 }
 
-function detectImageExtension(buffer: Buffer, mimetype: string): string | null {
-  if (buffer.length < 12) return null;
-
-  // JPEG: FF D8 FF
-  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
-    return 'jpg';
-  }
-  // PNG: 89 50 4E 47
-  if (
-    buffer[0] === 0x89 &&
-    buffer[1] === 0x50 &&
-    buffer[2] === 0x4e &&
-    buffer[3] === 0x47
-  ) {
-    return 'png';
-  }
-  // WEBP: RIFF....WEBP
-  if (
-    buffer.subarray(0, 4).toString('ascii') === 'RIFF' &&
-    buffer.subarray(8, 12).toString('ascii') === 'WEBP'
-  ) {
-    return 'webp';
-  }
-  // AVIF: ....ftypavif
-  if (
-    buffer.subarray(4, 8).toString('ascii') === 'ftyp' &&
-    buffer.subarray(8, 12).toString('ascii').includes('avif')
-  ) {
-    return 'avif';
-  }
-
-  if (mimetype === 'image/jpeg') return 'jpg';
-  if (mimetype === 'image/png') return 'png';
-  if (mimetype === 'image/webp') return 'webp';
-  return null;
-}
-
 export async function storeMenuImageUpload(params: {
   file: Express.Multer.File;
   actor: { id: string; email: string };
   ipAddress?: string;
 }): Promise<{ imageUrl: string }> {
-  const ext = detectImageExtension(params.file.buffer, params.file.mimetype);
-  if (!ext) {
-    throw new HttpError(
-      400,
-      'Unsupported or invalid image file. Upload JPG, PNG, WebP, or AVIF up to 5 MB.',
-      'INVALID_IMAGE_FILE'
-    );
-  }
+  const result = await storeUploadedImage({
+    file: params.file,
+    folder: 'ruchiloka/menu',
+    prefix: 'menu',
+    strictMagicBytes: false,
+    allowDataUriFallbackInServerless: false,
+  });
 
-  const config = getConfig();
-
-  if (
-    config.cloudinary.enabled &&
-    config.cloudinary.cloudName &&
-    config.cloudinary.apiKey &&
-    config.cloudinary.apiSecret
-  ) {
-    const timestamp = Math.floor(Date.now() / 1000);
-    const folder = 'ruchiloka/menu';
-    const stringToSign = `folder=${folder}&timestamp=${timestamp}${config.cloudinary.apiSecret}`;
-    const signature = crypto.createHash('sha1').update(stringToSign).digest('hex');
-
-    const form = new FormData();
-    const mime =
-      ext === 'jpg' ? 'image/jpeg' : `image/${ext}`;
-    const blob = new Blob([new Uint8Array(params.file.buffer)], { type: mime });
-    form.append('file', blob, `dish-${timestamp}.${ext}`);
-    form.append('api_key', config.cloudinary.apiKey);
-    form.append('timestamp', String(timestamp));
-    form.append('folder', folder);
-    form.append('signature', signature);
-
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${encodeURIComponent(config.cloudinary.cloudName)}/image/upload`,
-      {
-        method: 'POST',
-        body: form,
-      }
-    );
-    const payload = (await response.json()) as {
-      secure_url?: string;
-      error?: { message?: string };
-    };
-    if (!response.ok || !payload.secure_url) {
-      throw new HttpError(
-        502,
-        payload.error?.message || 'Cloudinary image upload failed.',
-        'IMAGE_UPLOAD_FAILED'
-      );
-    }
-
-    await recordAuditLog({
-      actorUserId: params.actor.id,
-      actorEmail: params.actor.email,
-      action: 'ADMIN_MENU_IMAGE_UPLOADED',
-      entityType: 'Media',
-      metadata: { storage: 'cloudinary', url: payload.secure_url },
-      ipAddress: params.ipAddress,
-    });
-
-    return { imageUrl: payload.secure_url };
-  }
-
-  if (process.env.NETLIFY === 'true' || Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME)) {
-    throw new HttpError(
-      503,
-      'Cloudinary credentials are not configured. Local disk uploads are unavailable in serverless production.',
-      'CLOUDINARY_NOT_CONFIGURED'
-    );
-  }
-
-  const uploadsDir = path.resolve(process.cwd(), 'uploads');
-  await fs.mkdir(uploadsDir, { recursive: true });
-  const filename = `menu-${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${ext}`;
-  const targetPath = path.join(uploadsDir, filename);
-  await fs.writeFile(targetPath, params.file.buffer);
-
-  const publicUrl = `${config.backendUrl}/uploads/${filename}`;
   await recordAuditLog({
     actorUserId: params.actor.id,
     actorEmail: params.actor.email,
     action: 'ADMIN_MENU_IMAGE_UPLOADED',
     entityType: 'Media',
-    metadata: { storage: 'local', url: publicUrl },
+    metadata: { storage: result.storage, url: result.imageUrl },
     ipAddress: params.ipAddress,
   });
 
-  return { imageUrl: publicUrl };
+  return { imageUrl: result.imageUrl };
 }
 
 export async function listAdminCustomers(search?: string) {
