@@ -516,6 +516,14 @@ export async function storeMenuImageUpload(params: {
     return { imageUrl: payload.secure_url };
   }
 
+  if (process.env.NETLIFY === 'true' || Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME)) {
+    throw new HttpError(
+      503,
+      'Cloudinary credentials are not configured. Local disk uploads are unavailable in serverless production.',
+      'CLOUDINARY_NOT_CONFIGURED'
+    );
+  }
+
   const uploadsDir = path.resolve(process.cwd(), 'uploads');
   await fs.mkdir(uploadsDir, { recursive: true });
   const filename = `menu-${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${ext}`;

@@ -65,11 +65,31 @@ export function createApp() {
   );
 
   const isTest = config.nodeEnv === 'test';
+  const getClientKey = (req: express.Request): string => {
+    const netlifyIp = req.headers['x-nf-client-connection-ip'];
+    if (typeof netlifyIp === 'string' && netlifyIp.trim()) {
+      return netlifyIp.trim();
+    }
+    const forwardedFor = req.headers['x-forwarded-for'];
+    if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
+      return forwardedFor.split(',')[0].trim();
+    }
+    return req.ip || req.socket?.remoteAddress || 'anonymous';
+  };
+
+  const rateLimitValidate = {
+    ip: false,
+    trustProxy: false,
+    xForwardedForHeader: false,
+  } as const;
+
   const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: isTest ? 5000 : 400,
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: getClientKey,
+    validate: rateLimitValidate,
   });
 
   const sensitiveLimiter = rateLimit({
@@ -77,6 +97,8 @@ export function createApp() {
     max: isTest ? 5000 : 45,
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: getClientKey,
+    validate: rateLimitValidate,
     message: {
       success: false,
       code: 'RATE_LIMITED',

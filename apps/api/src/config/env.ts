@@ -4,7 +4,11 @@ import { z } from 'zod';
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  DATABASE_URL: z.string().min(1).optional(),
+  NETLIFY_DB_URL: z.string().min(1).optional(),
+  NETLIFY: z.string().optional(),
+  URL: z.string().url().optional(),
+  DEPLOY_PRIME_URL: z.string().url().optional(),
   FRONTEND_URL: z.string().url().optional(),
   BACKEND_URL: z.string().url().optional(),
   CORS_ALLOWED_ORIGINS: z.string().optional(),
@@ -106,11 +110,30 @@ export function getConfig(): AppConfig {
   const raw = parsed.data;
   const isProd = raw.NODE_ENV === 'production';
 
+  const resolvedDatabaseUrl = raw.DATABASE_URL?.trim() || raw.NETLIFY_DB_URL?.trim();
+  if (!resolvedDatabaseUrl) {
+    throw new Error(
+      'Invalid backend environment configuration: DATABASE_URL (or NETLIFY_DB_URL) is required.'
+    );
+  }
+
+  const netlifyOrigin =
+    raw.NETLIFY === 'true'
+      ? raw.URL && !isLocalhost(raw.URL)
+        ? raw.URL
+        : raw.DEPLOY_PRIME_URL && !isLocalhost(raw.DEPLOY_PRIME_URL)
+          ? raw.DEPLOY_PRIME_URL
+          : undefined
+      : undefined;
+
+  const effectiveFrontendUrl = raw.FRONTEND_URL ?? netlifyOrigin;
+  const effectiveBackendUrl = raw.BACKEND_URL ?? netlifyOrigin;
+
   if (isProd) {
-    if (!raw.FRONTEND_URL || isLocalhost(raw.FRONTEND_URL)) {
+    if (!effectiveFrontendUrl || isLocalhost(effectiveFrontendUrl)) {
       throw new Error('FRONTEND_URL must be explicitly set to a non-localhost origin in production.');
     }
-    if (!raw.BACKEND_URL || isLocalhost(raw.BACKEND_URL)) {
+    if (!effectiveBackendUrl || isLocalhost(effectiveBackendUrl)) {
       throw new Error('BACKEND_URL must be explicitly set to a non-localhost origin in production.');
     }
     if (!raw.SESSION_SECRET || raw.SESSION_SECRET.length < 32) {
@@ -118,8 +141,8 @@ export function getConfig(): AppConfig {
     }
   }
 
-  const frontendUrl = (raw.FRONTEND_URL ?? 'http://localhost:3000').replace(/\/+$/, '');
-  const backendUrl = (raw.BACKEND_URL ?? `http://localhost:${raw.PORT}`).replace(/\/+$/, '');
+  const frontendUrl = (effectiveFrontendUrl ?? 'http://localhost:3000').replace(/\/+$/, '');
+  const backendUrl = (effectiveBackendUrl ?? `http://localhost:${raw.PORT}`).replace(/\/+$/, '');
 
   const rawCors = (raw.CORS_ALLOWED_ORIGINS ?? frontendUrl)
     .split(',')
@@ -151,7 +174,7 @@ export function getConfig(): AppConfig {
   cachedConfig = {
     nodeEnv: raw.NODE_ENV,
     port: raw.PORT,
-    databaseUrl: raw.DATABASE_URL,
+    databaseUrl: resolvedDatabaseUrl,
     frontendUrl,
     backendUrl,
     corsAllowedOrigins: Array.from(new Set(rawCors)),

@@ -49,10 +49,66 @@ export function mapMenuItemToDto(item: {
   };
 }
 
+const BASELINE_CATEGORIES: Array<{
+  slug: MenuCategorySlug;
+  name: string;
+  description: string;
+  serviceWindowKey: string;
+  displayOrder: number;
+}> = [
+  {
+    slug: 'tiffins',
+    name: 'Tiffins',
+    description: 'Traditional South Indian morning breakfast served 6:30 AM – 11:30 AM IST.',
+    serviceWindowKey: 'tiffins',
+    displayOrder: 1,
+  },
+  {
+    slug: 'beverages',
+    name: 'Tea and Coffee',
+    description: 'Freshly brewed filter coffee, espresso classics, and aromatic chai (6:30 AM – 11:00 PM IST).',
+    serviceWindowKey: 'beverages',
+    displayOrder: 2,
+  },
+  {
+    slug: 'continental',
+    name: 'Continental',
+    description: 'Warm artisanal sandwiches, pastas, and café plates served 3:00 PM – 11:00 PM IST.',
+    serviceWindowKey: 'continental_snacks',
+    displayOrder: 3,
+  },
+  {
+    slug: 'snacks',
+    name: 'Snacks',
+    description: 'Crisp savouries, bakes, and evening bites served 3:00 PM – 11:00 PM IST.',
+    serviceWindowKey: 'continental_snacks',
+    displayOrder: 4,
+  },
+];
+
+async function ensureBaselineCategories(): Promise<void> {
+  if (typeof prisma.menuCategory.upsert !== 'function') {
+    return;
+  }
+  for (const cat of BASELINE_CATEGORIES) {
+    await prisma.menuCategory.upsert({
+      where: { slug: cat.slug },
+      update: {},
+      create: cat,
+    });
+  }
+}
+
 export async function listCategories(): Promise<MenuCategoryDto[]> {
-  const rows = await prisma.menuCategory.findMany({
+  let rows = await prisma.menuCategory.findMany({
     orderBy: { displayOrder: 'asc' },
   });
+  if (rows.length === 0) {
+    await ensureBaselineCategories();
+    rows = await prisma.menuCategory.findMany({
+      orderBy: { displayOrder: 'asc' },
+    });
+  }
   return rows.map((c) => ({
     id: c.id,
     slug: c.slug as MenuCategorySlug,

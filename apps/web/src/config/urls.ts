@@ -87,6 +87,17 @@ export function resolveUrlConfig(): UrlConfigState {
     };
   }
 
+  if (typeof window !== 'undefined' && !isLocalhostUrl(window.location.origin)) {
+    const sameOrigin = stripTrailingSlash(window.location.origin);
+    return {
+      environment,
+      apiBaseUrl: sameOrigin,
+      appBaseUrl: rawAppBase ? stripTrailingSlash(rawAppBase) : sameOrigin,
+      isConfigured: true,
+      configurationError: null,
+    };
+  }
+
   const msg =
     'Backend API base URL (NEXT_PUBLIC_API_BASE_URL) is not configured for this environment.';
   console.error(`[Ruchiloka URL Config] ${msg}`);
