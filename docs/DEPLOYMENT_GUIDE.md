@@ -1,8 +1,8 @@
 # Ruchiloka Café — Production Deployment & Operations Guide (Netlify + Node API + Managed PostgreSQL)
 
 ## Architecture Overview
-Because Netlify hosts serverless/edge SSR frontends cleanly while long-running Express/Prisma workloads, transactional file/media handling, and persistent connection pools perform best on a dedicated Node.js container host, this monorepo deploys cleanly across three tiers:
-1. **Frontend (`apps/web`)**: **Netlify** via `@netlify/plugin-nextjs` (`netlify.toml` at repo root)
+Because the Netlify frontend exports clean pre-rendered App Router pages directly to CDN (`apps/web/out`) while long-running Express/Prisma workloads, transactional file/media handling, and persistent connection pools perform best on a dedicated Node.js container host, this monorepo deploys cleanly across three tiers:
+1. **Frontend (`apps/web`)**: **Netlify** static Next.js export (`netlify.toml` at repo root)
 2. **Backend API (`apps/api`)**: **Render** (Blueprint provided in `render.yaml`) or Railway / Fly.io
 3. **Database**: **Managed PostgreSQL** (Render PostgreSQL, Neon, or Supabase)
 
@@ -87,10 +87,7 @@ The repository includes a pre-configured `netlify.toml`:
 ```toml
 [build]
   command = "npm run build:shared && npm run build:web"
-  publish = "apps/web/.next"
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+  publish = "apps/web/out"
 
 [build.environment]
   NODE_VERSION = "20"
@@ -99,7 +96,7 @@ The repository includes a pre-configured `netlify.toml`:
 1. Push this repository to GitHub / GitLab.
 2. In **Netlify Dashboard -> Add new site -> Import an existing project**:
    - Select the repository.
-   - Netlify automatically detects `netlify.toml` (`command`, `publish`, `@netlify/plugin-nextjs`).
+   - Netlify automatically detects `netlify.toml` (`command` and `publish`).
 3. Under **Site configuration -> Environment variables**, add:
    - `NEXT_PUBLIC_API_BASE_URL` = `https://<your-api>.onrender.com` (no trailing slash)
    - `NEXT_PUBLIC_APP_URL` = `https://<your-site>.netlify.app`
