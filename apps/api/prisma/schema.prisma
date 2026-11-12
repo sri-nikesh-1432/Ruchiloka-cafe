@@ -1,0 +1,368 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum OrderingProvider {
+  SWIGGY
+  ZOMATO
+}
+
+enum EmailDeliveryStatus {
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model User {
+  id                    String         @id @default(uuid()) @db.Uuid
+  email                 String         @unique
+  name                  String
+  phone                 String?
+  passwordHash          String?        @map("password_hash")
+  role                  UserRole       @default(CUSTOMER)
+  emailVerified         Boolean        @default(false) @map("email_verified")
+  verificationTokenHash String?        @map("verification_token_hash")
+  verificationExpiresAt DateTime?      @map("verification_expires_at")
+  avatarUrl             String?        @map("avatar_url")
+  createdAt             DateTime       @default(now()) @map("created_at")
+  updatedAt             DateTime       @updatedAt @map("updated_at")
+
+  accounts     Account[]
+  sessions     Session[]
+  cart         Cart?
+  reservations Reservation[]
+  handoffs     OrderHandoff[]
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  provider          String
+  providerAccountId String   @map("provider_account_id")
+  accessToken       String?  @map("access_token")
+  refreshToken      String?  @map("refresh_token")
+  expiresAt         DateTime? @map("expires_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model MenuCategory {
+  id               String     @id @default(uuid()) @db.Uuid
+  slug             String     @unique
+  name             String
+  description      String?
+  serviceWindowKey String     @map("service_window_key")
+  displayOrder     Int        @default(0) @map("display_order")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  items MenuItem[]
+
+  @@map("menu_categories")
+}
+
+model MenuItem {
+  id              String   @id @default(uuid()) @db.Uuid
+  categoryId      String   @map("category_id") @db.Uuid
+  name            String
+  slug            String   @unique
+  description     String
+  priceInr        Int      @map("price_inr")
+  imageUrl        String   @map("image_url")
+  isVegetarian    Boolean  @default(true) @map("is_vegetarian")
+  isAvailable     Boolean  @default(true) @map("is_available")
+  isFeatured      Boolean  @default(false) @map("is_featured")
+  prepTimeMinutes Int      @default(15) @map("prep_time_minutes")
+  displayOrder    Int      @default(0) @map("display_order")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  category         MenuCategory          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  variants         MenuItemVariant[]
+  addons           MenuAddon[]
+  cartItems        CartItem[]
+  externalMappings ExternalItemMapping[]
+
+  @@index([categoryId, isAvailable, displayOrder])
+  @@index([isFeatured, isAvailable])
+  @@map("menu_items")
+}
+
+model MenuItemVariant {
+  id            String  @id @default(uuid()) @db.Uuid
+  menuItemId    String  @map("menu_item_id") @db.Uuid
+  name          String
+  priceDeltaInr Int     @default(0) @map("price_delta_inr")
+  isAvailable   Boolean @default(true) @map("is_available")
+
+  menuItem  MenuItem   @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  cartItems CartItem[]
+
+  @@index([menuItemId])
+  @@map("menu_item_variants")
+}
+
+model MenuAddon {
+  id          String  @id @default(uuid()) @db.Uuid
+  menuItemId  String  @map("menu_item_id") @db.Uuid
+  name        String
+  priceInr    Int     @map("price_inr")
+  isAvailable Boolean @default(true) @map("is_available")
+
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@index([menuItemId])
+  @@map("menu_addons")
+}
+
+model Cart {
+  id        String     @id @default(uuid()) @db.Uuid
+  userId    String     @unique @map("user_id") @db.Uuid
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id                  String   @id @default(uuid()) @db.Uuid
+  cartId              String   @map("cart_id") @db.Uuid
+  menuItemId          String   @map("menu_item_id") @db.Uuid
+  variantId           String?  @map("variant_id") @db.Uuid
+  addonIds            String[] @default([]) @map("addon_ids")
+  quantity            Int      @default(1)
+  specialInstructions String?  @map("special_instructions")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  cart     Cart             @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  menuItem MenuItem         @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  variant  MenuItemVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([cartId])
+  @@map("cart_items")
+}
+
+model ReservationSlot {
+  id             String   @id @default(uuid()) @db.Uuid
+  slotDate       String   @map("slot_date")
+  slotTime       String   @map("slot_time")
+  capacityGuests Int      @map("capacity_guests")
+  capacityTables Int      @map("capacity_tables")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  reservations Reservation[]
+
+  @@unique([slotDate, slotTime])
+  @@map("reservation_slots")
+}
+
+model Reservation {
+  id              String            @id @default(uuid()) @db.Uuid
+  bookingCode     String            @unique @map("booking_code")
+  userId          String?           @map("user_id") @db.Uuid
+  slotId          String?           @map("slot_id") @db.Uuid
+  customerName    String            @map("customer_name")
+  customerEmail   String            @map("customer_email")
+  customerPhone   String            @map("customer_phone")
+  reservationDate String            @map("reservation_date")
+  reservationTime String            @map("reservation_time")
+  guestCount      Int               @map("guest_count")
+  specialRequests String?           @map("special_requests")
+  status          ReservationStatus @default(PENDING)
+  adminNotes      String?           @map("admin_notes")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  user User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  slot ReservationSlot? @relation(fields: [slotId], references: [id], onDelete: SetNull)
+
+  @@index([reservationDate, reservationTime, status])
+  @@index([userId, createdAt])
+  @@index([customerEmail])
+  @@map("reservations")
+}
+
+model ExternalPlatform {
+  id           String           @id @default(uuid()) @db.Uuid
+  code         OrderingProvider @unique
+  displayName  String           @map("display_name")
+  apiEnabled   Boolean          @default(false) @map("api_enabled")
+  metadataJson Json?            @map("metadata_json")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  restaurants  ExternalRestaurantMapping[]
+  itemMappings ExternalItemMapping[]
+
+  @@map("external_platforms")
+}
+
+model ExternalRestaurantMapping {
+  id                   String   @id @default(uuid()) @db.Uuid
+  platformId           String   @map("platform_id") @db.Uuid
+  externalRestaurantId String   @map("external_restaurant_id")
+  listingUrl           String   @map("listing_url")
+  isActive             Boolean  @default(true) @map("is_active")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  platform ExternalPlatform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+
+  @@unique([platformId, externalRestaurantId])
+  @@map("external_restaurant_mappings")
+}
+
+model ExternalItemMapping {
+  id                     String   @id @default(uuid()) @db.Uuid
+  platformId             String   @map("platform_id") @db.Uuid
+  menuItemId             String   @map("menu_item_id") @db.Uuid
+  externalItemId         String   @map("external_item_id")
+  externalVariantMapJson Json?    @map("external_variant_map_json")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  platform ExternalPlatform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  menuItem MenuItem         @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@unique([platformId, menuItemId])
+  @@map("external_item_mappings")
+}
+
+model OrderHandoff {
+  id                String           @id @default(uuid()) @db.Uuid
+  userId            String?          @map("user_id") @db.Uuid
+  provider          OrderingProvider
+  mode              String
+  cartTransferred   Boolean          @default(false) @map("cart_transferred")
+  externalCartId    String?          @map("external_cart_id")
+  subtotalInr       Int              @map("subtotal_inr")
+  redirectUrl       String?          @map("redirect_url")
+  summarySnapshot   String           @map("summary_snapshot")
+  itemsSnapshotJson Json             @map("items_snapshot_json")
+  createdAt         DateTime         @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@map("order_handoffs")
+}
+
+model ContactMessage {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  status    String   @default("NEW")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("contact_messages")
+}
+
+model EmailLog {
+  id                String              @id @default(uuid()) @db.Uuid
+  eventType         String              @map("event_type")
+  recipientEmail    String              @map("recipient_email")
+  subject           String
+  status            EmailDeliveryStatus
+  providerMessageId String?             @map("provider_message_id")
+  errorMessage      String?             @map("error_message")
+  attempts          Int                 @default(1)
+  metadataJson      Json?               @map("metadata_json")
+  createdAt         DateTime            @default(now()) @map("created_at")
+
+  @@index([eventType, createdAt])
+  @@index([recipientEmail])
+  @@map("email_logs")
+}
+
+model AdminSetting {
+  id                      String   @id @default(uuid()) @db.Uuid
+  key                     String   @unique @default("default")
+  cafeName                String   @map("cafe_name")
+  cafePhone               String   @map("cafe_phone")
+  cafeAddress             String   @map("cafe_address")
+  notificationEmails      String[] @default([]) @map("notification_emails")
+  operatingHoursJson      Json     @map("operating_hours_json")
+  reservationSlotMinutes  Int      @default(30) @map("reservation_slot_minutes")
+  maxGuestsPerSlot        Int      @default(24) @map("max_guests_per_slot")
+  maxTablesPerSlot        Int      @default(8) @map("max_tables_per_slot")
+  autoConfirmReservations Boolean  @default(false) @map("auto_confirm_reservations")
+  swiggyRestaurantId      String?  @map("swiggy_restaurant_id")
+  swiggyListingUrl        String?  @map("swiggy_listing_url")
+  zomatoRestaurantId      String?  @map("zomato_restaurant_id")
+  zomatoListingUrl        String?  @map("zomato_listing_url")
+  instagramUrl            String?  @map("instagram_url")
+  facebookUrl             String?  @map("facebook_url")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  @@map("admin_settings")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  actorEmail  String?  @map("actor_email")
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String?  @map("entity_id")
+  metadataJson Json?   @map("metadata_json")
+  ipAddress   String?  @map("ip_address")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  actorUser User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}

@@ -1,0 +1,24 @@
+{
+  "name": "ruchiloka-cafe",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm --workspace=@ruchiloka/web run dev",
+    "dev:api": "npm --workspace=@ruchiloka/api run dev",
+    "build:shared": "npm --workspace=@ruchiloka/shared run build",
+    "build:web": "npm --workspace=@ruchiloka/web run build",
+    "build:api": "npm --workspace=@ruchiloka/api run build",
+    "build": "npm run build:shared && npm run build:web && npm run build:api",
+    "lint:web": "npm --workspace=@ruchiloka/web run lint",
+    "test": "npm run test:shared && npm run test:api",
+    "test:api": "npm --workspace=@ruchiloka/api run test",
+    "test:shared": "npm --workspace=@ruchiloka/shared run test"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
