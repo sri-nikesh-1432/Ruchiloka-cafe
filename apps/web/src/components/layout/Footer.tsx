@@ -131,8 +131,18 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/about" className="hover:text-white transition-colors">
+                  About Us
+                </Link>
+              </li>
+              <li>
                 <Link href="/reserve" className="hover:text-white transition-colors">
                   Reserve a Table
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="hover:text-white transition-colors">
+                  Contact Us
                 </Link>
               </li>
               <li>
@@ -142,17 +152,7 @@ export function Footer() {
               </li>
               <li>
                 <Link href="/reviews" className="hover:text-white transition-colors">
-                  Customer Reviews
-                </Link>
-              </li>
-              <li>
-                <Link href="/about" className="hover:text-white transition-colors">
-                  About Us
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="hover:text-white transition-colors">
-                  Contact Us
+                  Reviews
                 </Link>
               </li>
             </ul>

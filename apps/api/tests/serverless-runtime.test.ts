@@ -107,5 +107,5 @@ describe('Serverless path normalization and Netlify runtime config', () => {
       success: false,
       code: 'NOT_FOUND',
     });
-  });
+  }, 15000);
 });

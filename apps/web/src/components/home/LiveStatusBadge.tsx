@@ -8,10 +8,13 @@ import {
   type OperatingWindow,
 } from '@ruchiloka/shared';
 
+const STATIC_SSR_BASELINE = new Date('2026-01-01T06:00:00.000Z');
+
 export function useLiveIstStatus(windows: OperatingWindow[]) {
-  const [now, setNow] = useState<Date>(() => new Date());
+  const [now, setNow] = useState<Date>(STATIC_SSR_BASELINE);
 
   useEffect(() => {
+    setNow(new Date());
     const id = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(id);
   }, []);

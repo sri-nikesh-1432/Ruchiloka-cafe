@@ -21,11 +21,11 @@ const MENU_DROPDOWN = [
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/menu', label: 'Our Menu', hasDropdown: true },
-  { href: '/gallery', label: 'Gallery' },
-  { href: '/reviews', label: 'Reviews' },
   { href: '/about', label: 'About Us' },
   { href: '/reserve', label: 'Reservations' },
   { href: '/contact', label: 'Contact' },
+  { href: '/gallery', label: 'Gallery' },
+  { href: '/reviews', label: 'Reviews' },
 ];
 
 export function Navbar() {
