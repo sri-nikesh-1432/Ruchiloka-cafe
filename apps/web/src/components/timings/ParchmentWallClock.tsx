@@ -224,86 +224,167 @@ export function ParchmentWallClock({
                   </text>
                 </g>
 
-                {/* Real-time Moving Clock Hands */}
+                {/* Real-time Moving Clock Hands - Grouped strictly around exact center (0, 0) */}
                 <g filter="url(#shadow-filter)">
-                  {/* Hour Hand */}
-                  <motion.line
-                    x1="0"
-                    y1="6"
-                    x2="0"
-                    y2={-numeralRadius * 0.58}
-                    stroke="#24140C"
-                    strokeWidth={isLarge ? 4 : 3}
-                    strokeLinecap="round"
-                    animate={prefersReduced ? undefined : { rotate: hourAngle }}
-                    style={{ transformOrigin: '0px 0px' }}
-                    transition={{ type: 'spring', damping: 20, stiffness: 120 }}
-                  />
+                  {/* Hour Hand Group (Breguet / antique pierced diamond) */}
+                  <g
+                    transform={`rotate(${hourAngle}, 0, 0)`}
+                    style={{
+                      transformOrigin: '0px 0px',
+                      transition: prefersReduced ? 'none' : 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    }}
+                  >
+                    {/* Counterweight Tail & Ring */}
+                    <line
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2={isLarge ? 17 : 12}
+                      stroke="#24140C"
+                      strokeWidth={isLarge ? 3 : 2.4}
+                      strokeLinecap="round"
+                    />
+                    <circle
+                      cx="0"
+                      cy={isLarge ? 12 : 8.5}
+                      r={isLarge ? 3.5 : 2.5}
+                      fill="#301A11"
+                      stroke="#24140C"
+                      strokeWidth="1"
+                    />
 
-                  {/* Hour Hand Diamond Accent */}
-                  <motion.polygon
-                    points={`0,${-numeralRadius * 0.45} ${isLarge ? 4 : 3},${-numeralRadius * 0.36} 0,${-numeralRadius * 0.27} -${isLarge ? 4 : 3},${-numeralRadius * 0.36}`}
-                    fill="#C2714F"
-                    stroke="#24140C"
-                    strokeWidth="1"
-                    animate={prefersReduced ? undefined : { rotate: hourAngle }}
-                    style={{ transformOrigin: '0px 0px' }}
-                  />
+                    {/* Main Hour Shaft */}
+                    <line
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2={-numeralRadius * 0.62}
+                      stroke="#24140C"
+                      strokeWidth={isLarge ? 3.8 : 2.8}
+                      strokeLinecap="round"
+                    />
 
-                  {/* Minute Hand */}
-                  <motion.line
-                    x1="0"
-                    y1="10"
-                    x2="0"
-                    y2={-numeralRadius * 0.86}
-                    stroke="#331A10"
-                    strokeWidth={isLarge ? 2.8 : 2.2}
-                    strokeLinecap="round"
-                    animate={prefersReduced ? undefined : { rotate: minuteAngle }}
-                    style={{ transformOrigin: '0px 0px' }}
-                    transition={{ type: 'spring', damping: 20, stiffness: 150 }}
-                  />
+                    {/* Elegant Diamond Lozenge Accent */}
+                    <polygon
+                      points={`0,${-numeralRadius * 0.58} ${isLarge ? 4.5 : 3.5},${-numeralRadius * 0.44} 0,${-numeralRadius * 0.30} -${isLarge ? 4.5 : 3.5},${-numeralRadius * 0.44}`}
+                      fill="#C2714F"
+                      stroke="#24140C"
+                      strokeWidth="1.2"
+                    />
+                    {/* Inner Gold Core Rivet */}
+                    <circle
+                      cx="0"
+                      cy={-numeralRadius * 0.44}
+                      r={isLarge ? 1.6 : 1.1}
+                      fill="#F5E1C8"
+                    />
+                  </g>
 
-                  {/* Minute Hand Diamond Accent */}
-                  <motion.polygon
-                    points={`0,${-numeralRadius * 0.72} ${isLarge ? 3 : 2},${-numeralRadius * 0.64} 0,${-numeralRadius * 0.56} -${isLarge ? 3 : 2},${-numeralRadius * 0.64}`}
-                    fill="#E2B179"
-                    stroke="#24140C"
-                    strokeWidth="0.8"
-                    animate={prefersReduced ? undefined : { rotate: minuteAngle }}
-                    style={{ transformOrigin: '0px 0px' }}
-                  />
+                  {/* Minute Hand Group (Lancet needle reaching the minute chapter ring) */}
+                  <g
+                    transform={`rotate(${minuteAngle}, 0, 0)`}
+                    style={{
+                      transformOrigin: '0px 0px',
+                      transition: prefersReduced ? 'none' : 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    }}
+                  >
+                    {/* Counterweight Tail */}
+                    <line
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2={isLarge ? 22 : 16}
+                      stroke="#2A160E"
+                      strokeWidth={isLarge ? 2.5 : 2}
+                      strokeLinecap="round"
+                    />
+                    <circle
+                      cx="0"
+                      cy={isLarge ? 16 : 11.5}
+                      r={isLarge ? 3 : 2.2}
+                      fill="#4D3022"
+                      stroke="#24140C"
+                      strokeWidth="0.8"
+                    />
 
-                  {/* Second Hand (Terracotta & Counterweight tail) */}
-                  <motion.line
-                    x1="0"
-                    y1="18"
-                    x2="0"
-                    y2={-numeralRadius * 0.94}
-                    stroke="#C2714F"
-                    strokeWidth={isLarge ? 1.4 : 1.1}
-                    strokeLinecap="round"
-                    animate={prefersReduced ? undefined : { rotate: secondAngle }}
-                    style={{ transformOrigin: '0px 0px' }}
-                    transition={{ ease: 'linear', duration: 0.15 }}
-                  />
+                    {/* Main Minute Shaft */}
+                    <line
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2={-numeralRadius * 0.88}
+                      stroke="#2A160E"
+                      strokeWidth={isLarge ? 2.6 : 2}
+                      strokeLinecap="round"
+                    />
 
-                  <motion.circle
-                    cx="0"
-                    cy="12"
-                    r={isLarge ? 3 : 2}
-                    fill="#C2714F"
-                    stroke="#24140C"
-                    strokeWidth="0.8"
-                    animate={prefersReduced ? undefined : { rotate: secondAngle }}
-                    style={{ transformOrigin: '0px 0px' }}
-                  />
+                    {/* Slender Diamond Accent */}
+                    <polygon
+                      points={`0,${-numeralRadius * 0.82} ${isLarge ? 3.5 : 2.6},${-numeralRadius * 0.68} 0,${-numeralRadius * 0.54} -${isLarge ? 3.5 : 2.6},${-numeralRadius * 0.68}`}
+                      fill="#E2B179"
+                      stroke="#24140C"
+                      strokeWidth="1"
+                    />
+                    <circle
+                      cx="0"
+                      cy={-numeralRadius * 0.68}
+                      r={isLarge ? 1.2 : 0.9}
+                      fill="#2A160E"
+                    />
+                  </g>
+
+                  {/* Second Hand Group (Terracotta sweep needle) */}
+                  <g
+                    transform={`rotate(${secondAngle}, 0, 0)`}
+                    style={{
+                      transformOrigin: '0px 0px',
+                      transition: prefersReduced ? 'none' : 'transform 0.15s linear',
+                    }}
+                  >
+                    {/* Counterweight Tail */}
+                    <line
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2={isLarge ? 26 : 19}
+                      stroke="#C2714F"
+                      strokeWidth={isLarge ? 1.4 : 1.1}
+                      strokeLinecap="round"
+                    />
+                    <circle
+                      cx="0"
+                      cy={isLarge ? 18 : 13}
+                      r={isLarge ? 3.2 : 2.4}
+                      fill="#C2714F"
+                      stroke="#7A2E1D"
+                      strokeWidth="0.8"
+                    />
+
+                    {/* Main Second Needle */}
+                    <line
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2={-numeralRadius * 0.94}
+                      stroke="#C2714F"
+                      strokeWidth={isLarge ? 1.4 : 1.1}
+                      strokeLinecap="round"
+                    />
+                    {/* Sweep Dot Marker */}
+                    <circle
+                      cx="0"
+                      cy={-numeralRadius * 0.78}
+                      r={isLarge ? 1.8 : 1.3}
+                      fill="#C2714F"
+                    />
+                  </g>
                 </g>
 
-                {/* Center Brass Hub Rivet & Jewel Cap */}
-                <circle cx="0" cy="0" r={isLarge ? 6.5 : 5} fill="#D4A373" stroke="#24140C" strokeWidth="1.5" />
-                <circle cx="0" cy="0" r={isLarge ? 3 : 2.2} fill="#7A2E1D" />
-                <circle cx="-1" cy="-1" r="1.2" fill="#FFF8EE" opacity="0.75" />
+                {/* Center Brass Hub Rivet & Jewel Cap (Covers center pivot 0, 0 perfectly) */}
+                <circle cx="0" cy="0" r={isLarge ? 7.5 : 5.8} fill="#D4A373" stroke="#24140C" strokeWidth="1.5" />
+                <circle cx="0" cy="0" r={isLarge ? 4.5 : 3.4} fill="#7A2E1D" />
+                <circle cx="0" cy="0" r={isLarge ? 2.2 : 1.6} fill="#F5E1C8" />
+                <circle cx="-1.2" cy="-1.2" r="1.2" fill="#FFF8EE" opacity="0.85" />
               </svg>
             </div>
           </div>

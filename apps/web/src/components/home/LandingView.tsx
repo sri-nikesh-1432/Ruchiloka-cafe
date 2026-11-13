@@ -330,9 +330,9 @@ export function LandingView() {
         <BotanicalLeafSprig className="js-hero-leaf pointer-events-none absolute -left-4 top-32 hidden sm:block h-36 w-28 text-coffee/25" />
         <LotusMandalaWatermark className="js-hero-mandala pointer-events-none absolute left-[42%] top-20 hidden lg:block h-72 w-72 text-coffee/[0.12]" />
 
-        <div className="editorial-container relative z-10 grid items-center gap-10 lg:grid-cols-12 pt-4 sm:pt-8 pb-6 sm:pb-10">
+        <div className="editorial-container relative z-10 grid items-center gap-8 lg:gap-8 xl:gap-12 lg:grid-cols-12 pt-4 sm:pt-8 pb-6 sm:pb-10">
           {/* Left Editorial Typography Column */}
-          <div className="lg:col-span-6 space-y-6">
+          <div className="lg:col-span-6 space-y-6 min-w-0">
             <motion.div
               initial={prefersReduced ? false : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -345,7 +345,7 @@ export function LandingView() {
               </span>
             </motion.div>
 
-            <h1 className="font-serif text-4xl sm:text-5xl xl:text-[3.85rem] font-semibold leading-[1.08] tracking-[-0.02em] text-dark-brown">
+            <h1 className="font-serif text-3xl sm:text-4xl lg:text-[2.65rem] xl:text-[3.45rem] 2xl:text-[3.85rem] font-semibold leading-[1.08] tracking-[-0.02em] text-dark-brown">
               <TextReveal immediate delay={0.08}>
                 Every Cup. Every Bite.
               </TextReveal>{' '}
@@ -433,16 +433,16 @@ export function LandingView() {
           </div>
 
           {/* Right Layered Real Café & Culinary Photography Collage */}
-          <div className="lg:col-span-6">
-            <div className="js-hero-collage relative grid grid-cols-12 gap-3.5 items-end max-w-xl mx-auto lg:ml-auto will-change-transform">
+          <div className="lg:col-span-6 min-w-0 flex justify-center lg:justify-end">
+            <div className="js-hero-collage relative grid grid-cols-12 gap-3 sm:gap-3.5 items-end w-full max-w-[380px] sm:max-w-[430px] xl:max-w-[480px] will-change-transform">
               {/* Coffee Pour Card */}
               <motion.div
-                initial={prefersReduced ? false : { opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.9, delay: 0.14, ease: EDITORIAL_EASE }}
-                className="col-span-7 overflow-hidden rounded-[26px] border-2 border-ivory bg-ivory p-2 shadow-editorial"
+                initial={prefersReduced ? false : { opacity: 0, y: 26, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.9, delay: 0.16, ease: EDITORIAL_EASE }}
+                className="col-span-7 overflow-hidden rounded-[20px] sm:rounded-[26px] border-2 border-ivory bg-ivory p-1.5 sm:p-2 shadow-editorial"
               >
-                <ImageMaskReveal immediate delay={0.18} roundedClass="rounded-[18px]">
+                <ImageMaskReveal immediate delay={0.18} roundedClass="rounded-[16px] sm:rounded-[18px]">
                   <div className="relative aspect-[4/4.3] overflow-hidden">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -456,28 +456,28 @@ export function LandingView() {
 
               {/* Golden Masala Dosa + Official Crest Stamp Stack */}
               <motion.div
-                initial={prefersReduced ? false : { opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.9, delay: 0.24, ease: EDITORIAL_EASE }}
-                className="col-span-5 space-y-3.5"
+                initial={prefersReduced ? false : { opacity: 0, y: 30, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.9, delay: 0.26, ease: EDITORIAL_EASE }}
+                className="col-span-5 space-y-2.5 sm:space-y-3.5 min-w-0"
               >
-                <div className="flex items-center justify-center rounded-2xl border border-beige-dark/70 bg-[#FFF6D5] px-3 py-2.5 shadow-card">
+                <div className="flex items-center justify-center rounded-xl sm:rounded-2xl border border-beige-dark/70 bg-[#FFF6D5] p-2 sm:px-3 sm:py-2.5 shadow-card">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/images/brand/ruchiloka-logo.png"
                     alt="Ruchiloka Café official medallion emblem"
-                    className="h-14 w-14 object-contain"
+                    className="h-10 w-10 sm:h-12 sm:w-12 xl:h-14 xl:w-14 shrink-0 object-contain"
                   />
-                  <div className="ml-2.5 leading-tight text-left">
-                    <p className="font-serif text-sm font-semibold text-dark-brown">Ruchiloka</p>
-                    <p className="font-mono text-[9px] uppercase tracking-wider text-coffee-muted">
+                  <div className="ml-2 sm:ml-2.5 leading-tight text-left min-w-0 overflow-hidden">
+                    <p className="font-serif text-xs sm:text-sm font-semibold text-dark-brown truncate">Ruchiloka</p>
+                    <p className="font-mono text-[8px] sm:text-[9px] uppercase tracking-wider text-coffee-muted truncate">
                       Est. Kukatpally
                     </p>
                   </div>
                 </div>
 
-                <div className="overflow-hidden rounded-[22px] border-2 border-ivory bg-ivory p-1.5 shadow-editorial">
-                  <ImageMaskReveal immediate delay={0.28} roundedClass="rounded-[16px]">
+                <div className="overflow-hidden rounded-[18px] sm:rounded-[22px] border-2 border-ivory bg-ivory p-1 sm:p-1.5 shadow-editorial">
+                  <ImageMaskReveal immediate delay={0.28} roundedClass="rounded-[14px] sm:rounded-[16px]">
                     <div className="relative aspect-[4/3.6] overflow-hidden">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
