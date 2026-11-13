@@ -16,6 +16,8 @@ export interface IstClockParts {
   second: number;
   dateIso: string;
   time24: string;
+  time12: string;
+  time12WithSeconds: string;
   minutesSinceMidnight: number;
 }
 
@@ -23,6 +25,24 @@ export interface ServiceStatus extends OperatingWindow {
   isOpen: boolean;
   statusText: 'Open Now' | 'Closed Now';
   nextChangeText: string;
+}
+
+export interface IstFullTimings {
+  ist: IstClockParts;
+  dayOfWeek: string;
+  dayAndDate: string;
+  formattedClock12: string;
+  formattedClock24: string;
+  isCafeOpen: boolean;
+  overallStatus: 'OPEN' | 'CLOSED';
+  overallStatusText: 'Open Now' | 'Closed Now';
+  statusBadgeText: string;
+  activeServiceNames: string[];
+  activeServiceSummary: string;
+  nextChangeHeadline: string;
+  nextChangeSubtext: string;
+  services: ServiceStatus[];
+  timelineProgressPercent: number;
 }
 
 export function parseTime24ToMinutes(time24: string): number {
@@ -69,6 +89,10 @@ export function getIstClockParts(date: Date = new Date()): IstClockParts {
 
   const dateIso = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   const time24 = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  const suffix = hour >= 12 ? 'PM' : 'AM';
+  const time12 = `${h12}:${String(minute).padStart(2, '0')} ${suffix}`;
+  const time12WithSeconds = `${h12}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')} ${suffix}`;
 
   return {
     year,
@@ -79,7 +103,111 @@ export function getIstClockParts(date: Date = new Date()): IstClockParts {
     second,
     dateIso,
     time24,
+    time12,
+    time12WithSeconds,
     minutesSinceMidnight: hour * 60 + minute,
+  };
+}
+
+export function formatDurationMinutes(totalMinutes: number): string {
+  const m = Math.max(0, Math.round(totalMinutes));
+  const hrs = Math.floor(m / 60);
+  const mins = m % 60;
+  if (hrs > 0 && mins > 0) {
+    return `${hrs} hr${hrs > 1 ? 's' : ''} ${mins} min${mins > 1 ? 's' : ''}`;
+  }
+  if (hrs > 0) {
+    return `${hrs} hr${hrs > 1 ? 's' : ''}`;
+  }
+  return `${mins} min${mins === 1 ? '' : 's'}`;
+}
+
+export function getIstFullTimings(
+  date: Date = new Date(),
+  windows: OperatingWindow[] = DEFAULT_OPERATING_WINDOWS
+): IstFullTimings {
+  const ist = getIstClockParts(date);
+  const nowMin = ist.minutesSinceMidnight;
+  const services = getServiceStatuses(date, windows);
+  const activeServices = services.filter((s) => s.isOpen);
+  const isCafeOpen = activeServices.length > 0;
+  const overallStatus: 'OPEN' | 'CLOSED' = isCafeOpen ? 'OPEN' : 'CLOSED';
+  const overallStatusText: 'Open Now' | 'Closed Now' = isCafeOpen ? 'Open Now' : 'Closed Now';
+
+  const dayOfWeek = new Intl.DateTimeFormat('en-IN', {
+    timeZone: BUSINESS_INFO.timezone,
+    weekday: 'long',
+  }).format(date);
+
+  const dayAndDate = new Intl.DateTimeFormat('en-IN', {
+    timeZone: BUSINESS_INFO.timezone,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(date);
+
+  const activeServiceNames = activeServices.map((s) => s.label);
+  const activeServiceSummary = isCafeOpen
+    ? `Serving ${activeServiceNames.join(' & ')}`
+    : 'All kitchen & beverage counters currently closed';
+
+  let nextChangeHeadline: string;
+  let nextChangeSubtext: string;
+  let statusBadgeText: string;
+
+  if (isCafeOpen) {
+    statusBadgeText = `OPEN NOW · ${activeServiceNames.join(' & ')}`;
+    if (nowMin < 690) {
+      const remainingTiffins = 690 - nowMin;
+      nextChangeHeadline = `Morning Tiffins service concludes at 11:30 AM IST (${formatDurationMinutes(remainingTiffins)} left)`;
+      nextChangeSubtext = 'Tea & Coffee continues all day until 11:00 PM IST';
+    } else if (nowMin < 900) {
+      const untilContinental = 900 - nowMin;
+      nextChangeHeadline = `Continental & Evening Snacks opens at 3:00 PM IST (in ${formatDurationMinutes(untilContinental)})`;
+      nextChangeSubtext = 'Freshly brewed Filter Coffee and tea currently being served';
+    } else {
+      const untilClose = 1380 - nowMin;
+      nextChangeHeadline = `Café service closes tonight at 11:00 PM IST (${formatDurationMinutes(untilClose)} left)`;
+      nextChangeSubtext = 'Full evening menu, artisanal bakes, and coffee available';
+    }
+  } else {
+    if (nowMin >= 1380) {
+      const minsUntilTomorrowMorning = 1440 - nowMin + 390;
+      statusBadgeText = 'CLOSED NOW · OPENS 6:30 AM';
+      nextChangeHeadline = 'Doors reopen tomorrow morning at 6:30 AM IST';
+      nextChangeSubtext = `Opening in ${formatDurationMinutes(minsUntilTomorrowMorning)} with hot Filter Coffee & authentic South Indian Tiffins`;
+    } else {
+      const minsUntilMorning = 390 - nowMin;
+      statusBadgeText = 'CLOSED NOW · OPENS 6:30 AM';
+      nextChangeHeadline = 'Doors open this morning at 6:30 AM IST';
+      nextChangeSubtext = `Opening in ${formatDurationMinutes(minsUntilMorning)} with hot Filter Coffee & authentic South Indian Tiffins`;
+    }
+  }
+
+  const timelineMin = 360;
+  const timelineMax = 1410;
+  const clampedProgressMin = Math.max(timelineMin, Math.min(timelineMax, nowMin));
+  const timelineProgressPercent = Math.round(
+    ((clampedProgressMin - timelineMin) / (timelineMax - timelineMin)) * 100
+  );
+
+  return {
+    ist,
+    dayOfWeek,
+    dayAndDate,
+    formattedClock12: `${ist.time12} IST`,
+    formattedClock24: `${ist.time24} IST`,
+    isCafeOpen,
+    overallStatus,
+    overallStatusText,
+    statusBadgeText,
+    activeServiceNames,
+    activeServiceSummary,
+    nextChangeHeadline,
+    nextChangeSubtext,
+    services,
+    timelineProgressPercent,
   };
 }
 

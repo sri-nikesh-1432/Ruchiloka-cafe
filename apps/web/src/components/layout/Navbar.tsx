@@ -26,6 +26,7 @@ const NAV_LINKS = [
   { href: '/contact', label: 'Contact' },
   { href: '/gallery', label: 'Gallery' },
   { href: '/reviews', label: 'Reviews' },
+  { href: '/timings', label: 'Timings' },
 ];
 
 export function Navbar() {

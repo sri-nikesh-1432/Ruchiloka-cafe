@@ -642,12 +642,20 @@ export function LandingView() {
                   >
                     <Clock className="h-4 w-4" />
                   </motion.span>
-                  <div>
-                    <h2 className="font-serif text-2xl font-semibold text-dark-brown leading-none">
-                      Operating Hours
-                    </h2>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <h2 className="font-serif text-2xl font-semibold text-dark-brown leading-none">
+                        Operating Hours
+                      </h2>
+                      <Link
+                        href="/timings"
+                        className="font-mono text-[10px] uppercase tracking-wider text-cognac hover:underline font-semibold"
+                      >
+                        Live Clock →
+                      </Link>
+                    </div>
                     <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-coffee-muted">
-                      Asia/Kolkata (IST)
+                      Ruchiloka Café · Asia/Kolkata (IST)
                     </p>
                   </div>
                 </div>
@@ -662,14 +670,17 @@ export function LandingView() {
                         </span>
                       </div>
                       <div className="mt-1 flex items-center justify-between text-[11px] text-coffee-muted">
+                        {/* Traditional Typography Status Badge (NO BLUE DOT) */}
                         <span
-                          className={`inline-flex items-center gap-1 font-semibold ${
-                            slot.isOpen ? 'text-sky-blue-deep' : 'text-coffee-soft'
+                          className={`inline-flex items-center gap-1.5 font-serif text-xs font-bold uppercase tracking-wider ${
+                            slot.isOpen ? 'text-dark-brown' : 'text-coffee-soft'
                           }`}
                         >
                           <span
                             className={`h-1.5 w-1.5 rounded-full ${
-                              slot.isOpen ? 'bg-sky-blue-deep' : 'bg-coffee-soft'
+                              slot.isOpen
+                                ? 'bg-cognac shadow-[0_0_6px_rgba(194,113,79,0.8)]'
+                                : 'bg-coffee-soft/70'
                             }`}
                           />
                           {slot.statusText}
@@ -679,6 +690,21 @@ export function LandingView() {
                     </StaggerItem>
                   ))}
                 </StaggerContainer>
+
+                <div className="mt-5 pt-3.5 border-t border-beige-border">
+                  <Link
+                    href="/timings"
+                    className="group inline-flex items-center justify-between w-full rounded-xl border border-cognac/30 bg-ivory px-4 py-2.5 text-xs font-semibold text-dark-brown hover:border-cognac hover:bg-[#FFF9F2] transition-all shadow-sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-3.5 w-3.5 text-cognac group-hover:rotate-12 transition-transform" />
+                      <span>View Full Timings &amp; Live Wall Clock</span>
+                    </div>
+                    <span className="text-cognac font-mono text-[11px] group-hover:translate-x-1 transition-transform">
+                      →
+                    </span>
+                  </Link>
+                </div>
               </TraditionalFramedCard>
             </SlideReveal>
           </div>

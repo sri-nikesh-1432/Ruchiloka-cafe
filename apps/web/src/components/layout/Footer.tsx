@@ -155,14 +155,28 @@ export function Footer() {
                   Reviews
                 </Link>
               </li>
+              <li>
+                <Link href="/timings" className="hover:text-white transition-colors">
+                  Timings &amp; Live Clock
+                </Link>
+              </li>
             </ul>
           </StaggerItem>
 
           {/* Operating Hours Column */}
           <StaggerItem className="lg:col-span-3 space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.22em] text-cognac-light">
-              Hours (IST)
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.22em] text-cognac-light">
+                Hours (IST)
+              </h3>
+              <Link
+                href="/timings"
+                className="text-[11px] font-mono text-sandstone hover:underline inline-flex items-center gap-1"
+              >
+                <span>Live Clock</span>
+                <span>→</span>
+              </Link>
+            </div>
             <ul className="space-y-4 text-sm">
               {publicSettings.operatingHours.map((slot) => (
                 <li
@@ -177,6 +191,15 @@ export function Footer() {
                 </li>
               ))}
             </ul>
+            <div className="pt-1">
+              <Link
+                href="/timings"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-beige hover:border-cognac-light hover:text-white transition-colors"
+              >
+                <span>View Full Timings &amp; Wall Clock</span>
+                <span>→</span>
+              </Link>
+            </div>
           </StaggerItem>
 
           {/* Delivery Partners & Legal */}

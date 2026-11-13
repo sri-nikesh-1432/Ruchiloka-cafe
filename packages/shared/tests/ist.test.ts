@@ -8,6 +8,7 @@ import {
   generateDailyReservationSlots,
   getCategoryServiceStatus,
   getIstClockParts,
+  getIstFullTimings,
   getServiceStatuses,
   isCafeCurrentlyOpen,
   RegisterSchema,
@@ -40,6 +41,49 @@ describe('@ruchiloka/shared IST hours & validation rules', () => {
     // 23:00 IST = 17:30 UTC -> All closed (half-open end boundaries)
     const at2300Ist = new Date('2026-11-12T17:30:00.000Z');
     expect(isCafeCurrentlyOpen(at2300Ist)).toBe(false);
+  });
+
+  it('computes rich full timings data, service boundaries, and countdowns accurately', () => {
+    // 1. Morning Breakfast (08:30 IST)
+    const morningDate = new Date('2026-11-12T03:00:00.000Z'); // 08:30 IST
+    const morning = getIstFullTimings(morningDate, DEFAULT_OPERATING_WINDOWS);
+    expect(morning.isCafeOpen).toBe(true);
+    expect(morning.overallStatus).toBe('OPEN');
+    expect(morning.overallStatusText).toBe('Open Now');
+    expect(morning.activeServiceNames).toContain('Tiffins');
+    expect(morning.activeServiceNames).toContain('Tea and Coffee');
+    expect(morning.nextChangeHeadline).toContain('11:30 AM IST');
+    expect(morning.formattedClock12).toBe('8:30 AM IST');
+
+    // 2. Midday Tea Only (13:00 IST)
+    const middayDate = new Date('2026-11-12T07:30:00.000Z'); // 13:00 IST
+    const midday = getIstFullTimings(middayDate, DEFAULT_OPERATING_WINDOWS);
+    expect(midday.isCafeOpen).toBe(true);
+    expect(midday.overallStatus).toBe('OPEN');
+    expect(midday.activeServiceNames).toEqual(['Tea and Coffee']);
+    expect(midday.nextChangeHeadline).toContain('3:00 PM IST');
+
+    // 3. Evening Dining (18:00 IST)
+    const eveningDate = new Date('2026-11-12T12:30:00.000Z'); // 18:00 IST
+    const evening = getIstFullTimings(eveningDate, DEFAULT_OPERATING_WINDOWS);
+    expect(evening.isCafeOpen).toBe(true);
+    expect(evening.activeServiceNames).toContain('Continental and Snacks');
+    expect(evening.nextChangeHeadline).toContain('11:00 PM IST');
+
+    // 4. Night Closed (23:45 IST)
+    const nightDate = new Date('2026-11-12T18:15:00.000Z'); // 23:45 IST
+    const night = getIstFullTimings(nightDate, DEFAULT_OPERATING_WINDOWS);
+    expect(night.isCafeOpen).toBe(false);
+    expect(night.overallStatus).toBe('CLOSED');
+    expect(night.overallStatusText).toBe('Closed Now');
+    expect(night.statusBadgeText).toBe('CLOSED NOW · OPENS 6:30 AM');
+    expect(night.nextChangeHeadline).toContain('tomorrow morning at 6:30 AM IST');
+
+    // 5. Early Morning Closed (05:00 IST)
+    const dawnDate = new Date('2026-11-11T23:30:00.000Z'); // 05:00 IST next day
+    const dawn = getIstFullTimings(dawnDate, DEFAULT_OPERATING_WINDOWS);
+    expect(dawn.isCafeOpen).toBe(false);
+    expect(dawn.nextChangeHeadline).toContain('this morning at 6:30 AM IST');
   });
 
   it('generates reservation slots aligned with operating hours and 30-minute intervals', () => {
